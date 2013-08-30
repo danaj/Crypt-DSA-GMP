@@ -9,13 +9,7 @@ use Test::More;
 use Crypt::DSA;
 use Crypt::DSA::KeyChain;
 
-BEGIN {
-	if ( not $INC{'Math/BigInt/GMP.pm'} and not $INC{'Math/BigInt/Pari.pm'} ) {
-		plan( skip_all => 'Test is excessively slow without GMP or Pari' );
-	} else {
-		plan( tests => 9 );
-	}
-}
+plan( tests => 9 );
 
 ## Test with data from fips 186 (appendix 5) doc (using SHA1
 ## instead of SHA digests).
@@ -35,8 +29,6 @@ ok($dsa, 'Crypt::DSA->new worked');
 ## to use the actual methods themselves.
 my $keychain = Crypt::DSA::KeyChain->new;
 ok($keychain, 'Crypt::DSA::KeyChain->new worked');
-
-diag('This takes a couple of minutes on slower machines.');
 
 ## generate_params builds p, q, and g.
 my($key, $counter, $h, $seed) = $keychain->generate_params(

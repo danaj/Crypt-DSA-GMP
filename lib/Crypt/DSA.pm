@@ -1,17 +1,19 @@
 package Crypt::DSA;
 
 use 5.006;
+use warnings;
 use strict;
-use Digest::SHA1 qw( sha1 );
+use Digest::SHA qw( sha1 );
 use Carp qw( croak );
 use Crypt::DSA::KeyChain;
 use Crypt::DSA::Key;
 use Crypt::DSA::Signature;
 use Crypt::DSA::Util qw( bitsize bin2mp mod_inverse mod_exp makerandom );
+use Math::BigInt lib => "GMP";
 
 use vars qw( $VERSION );
 BEGIN {
-    $VERSION = '1.17';
+    $VERSION = '1.00';
 }
 
 sub new {
@@ -38,20 +40,14 @@ sub sign {
             unless $param{Message};
         $dgst = sha1($param{Message});
     }
-    my $dlen = length $dgst;
 
-    my $i = bitsize($key->q) / 8;
-    croak "Data too large for key size"
-        if $dlen > $i || $dlen > 50;
+    # FIPS 186-4 section 4.6.  Take the leftmost min(N,outlen) bytes.
+    $dgst = substr($dgst, 0, 20) if length($dgst) > 20;
 
     $dsa->_sign_setup($key)
         unless $key->kinv && $key->r;
 
-    my $m = bin2mp($dgst);
-    my $xr = ($key->priv_key * $key->r) % $key->q;
-    my $s = $xr + $m;
-    $s -= $key->q if $s > $key->q;
-    $s = ($s * $key->kinv) % $key->q;
+    my $s = ($key->kinv * (bin2mp($dgst) + $key->priv_key * $key->r)) % $key->q;
 
     my $sig = Crypt::DSA::Signature->new;
     $sig->r($key->r);
@@ -63,14 +59,14 @@ sub _sign_setup {
     my $dsa = shift;
     my $key = shift;
     my($k, $r);
+    my $q = $key->q;
     {
-        $k = makerandom(Size => bitsize($key->q));
-        $k -= $key->q if $k >= $key->q;
+        $k = makerandom(Size => bitsize($q));
+        $k -= $q if $k >= $q;
         redo if $k == 0;
     }
-    $r = mod_exp($key->g, $k, $key->p);
-    $r %= $key->q;
-    my $kinv = mod_inverse($k, $key->q);
+    $r = mod_exp($key->g, $k, $key->p)->bmod($q);
+    my $kinv = mod_inverse($k, $q);
     $key->r($r);
     $key->kinv($kinv);
 }
@@ -87,15 +83,21 @@ sub verify {
     }
     croak __PACKAGE__, "->verify: Need a Signature"
         unless $sig = $param{Signature};
-    my $u2 = mod_inverse($sig->s, $key->q);
-    my $u1 = bin2mp($dgst);
-    $u1 = ($u1 * $u2) % $key->q;
-    $u2 = ($sig->r * $u2) % $key->q;
-    my $t1 = mod_exp($key->g, $u1, $key->p);
-    my $t2 = mod_exp($key->pub_key, $u2, $key->p);
-    $u1 = ($t1 * $t2) % $key->p;
-    $u1 %= $key->q;
-    $u1 == $sig->r;
+
+    my $p = $key->p;
+    my $q = $key->q;
+    return 0 unless $sig->r > 0 && $sig->r < $q;
+    return 0 unless $sig->s > 0 && $sig->s < $q;
+    my $w = mod_inverse($sig->s, $q);
+    $dgst = substr($dgst, 0, 20) if length($dgst) > 20;
+    my $z = bin2mp($dgst);
+    my $u1 = $w->copy->bmul($z     )->bmod($q);
+    my $u2 = $w->copy->bmul($sig->r)->bmod($q);
+    my $v =        mod_exp($key->g,       $u1, $p)
+            ->bmul(mod_exp($key->pub_key, $u2, $p))
+            ->bmod($p)
+            ->bmod($q);
+    $v == $sig->r;
 }
 
 1;

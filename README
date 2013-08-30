@@ -1,9 +1,9 @@
 NAME
-    Crypt::DSA - DSA Signatures and Key Generation
+    Crypt::DSA::GMP - DSA Signatures and Key Generation
 
 SYNOPSIS
-        use Crypt::DSA;
-        my $dsa = Crypt::DSA->new;
+        use Crypt::DSA::GMP;
+        my $dsa = Crypt::DSA::GMP->new;
 
         my $key = $dsa->keygen(
                        Size      => 512,
@@ -23,20 +23,19 @@ SYNOPSIS
                   );
 
 DESCRIPTION
-    *Crypt::DSA* is an implementation of the DSA (Digital Signature
-    Algorithm) signature verification system. The implementation itself is
-    pure Perl, although the heavy-duty mathematics underneath are provided
-    by the *Math::Pari* library.
+    *Crypt::DSA::GMP* is an implementation of the DSA (Digital Signature
+    Algorithm) signature verification system. The implementation is in
+    pure Perl with the math backend being GMP.
 
     This package provides DSA signing, signature verification, and key
     generation.
 
 USAGE
-    The *Crypt::DSA* public interface is similar to that of *Crypt::RSA*.
-    This was done intentionally.
+    The *Crypt::DSA::GMP* public interface is identical to *Crypt::DSA*,
+    and is intentionally similar to that of *Crypt::RSA*.
 
-  Crypt::DSA->new
-    Constructs a new *Crypt::DSA* object. At the moment this isn't
+  Crypt::DSA::GMP->new
+    Constructs a new *Crypt::DSA::GMP* object. At the moment this isn't
     particularly useful in itself, other than being the object you need to
     do much else in the system.
 
@@ -76,7 +75,7 @@ USAGE
     Signs a message (or the digest of a message) using the private portion
     of the DSA key and returns the signature.
 
-    The return value--the signature--is a *Crypt::DSA::Signature* object.
+    The return value--the signature--is a *Crypt::DSA::::GMP::Signature* object.
 
     *%arg* can include:
 
@@ -89,7 +88,7 @@ USAGE
 
     *   Key
 
-        The *Crypt::DSA::Key* object with which the signature will be
+        The *Crypt::DSA::::GMP::Key* object with which the signature will be
         generated. Should contain a private key attribute (*priv_key*).
 
         This argument is required.
@@ -156,7 +155,7 @@ AUTHOR
     Benjamin Trott <ben@sixapart.com>
 
 COPYRIGHT
-    Except where otherwise noted, Crypt::DSA is Copyright 2006 - 2011
+    Except where otherwise noted, Crypt::DSA::GMP is Copyright 2006 - 2011
     Benjamin Trott.
 
     Crypt::DSA is free software; you may redistribute it and/or modify it

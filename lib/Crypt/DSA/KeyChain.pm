@@ -1,13 +1,10 @@
 package Crypt::DSA::KeyChain;
 
 use strict;
-use Math::BigInt 1.78 try => 'GMP, Pari';
-use Digest::SHA1 qw( sha1 );
+use Math::BigInt lib => "GMP";
+use Math::Prime::Util::GMP qw/is_prob_prime is_provable_prime is_strong_pseudoprime/;
+use Digest::SHA qw( sha1 sha1_hex );
 use Carp qw( croak );
-use IPC::Open3;
-use File::Spec;
-use File::Which ();
-use Symbol qw( gensym );
 
 use vars qw{$VERSION};
 BEGIN {
@@ -15,7 +12,7 @@ BEGIN {
 }
 
 use Crypt::DSA::Key;
-use Crypt::DSA::Util qw( bin2mp bitsize mod_exp makerandom isprime );
+use Crypt::DSA::Util qw( bin2mp bitsize mod_exp makerandom randombytes );
 
 sub new {
     my $class = shift;
@@ -25,93 +22,65 @@ sub new {
 sub generate_params {
     my $keygen = shift;
     my %param  = @_;
-    my $bits   = Math::BigInt->new($param{Size});
+    my $bits   = int($param{Size});
     croak "Number of bits (Size) is too small" unless $bits;
     delete $param{Seed} if $param{Seed} && length $param{Seed} != 20;
     my $v = $param{Verbosity};
 
-    # try to use fast implementations found on the system, if available.
-    unless ($param{Seed} || wantarray || $param{PurePerl}) {
+    # OpenSSL was removed to avoid portability concerns.  Math::Prime::Util
+    # offers fast probable prime testing, so it isn't too bad.
 
-        # OpenSSL support
-        my $bin     = $^O eq 'MSWin32' ? 'openssl.exe' : 'openssl';
-        my $openssl = File::Which::which($bin);
-        if ( $openssl ) {
-            print STDERR "Using openssl\n" if $v;
-            my $bits_n = int($bits);
-            open( NULL, ">", File::Spec->devnull );
-            my $pid = open3( gensym, \*OPENSSL, ">&NULL", "$openssl dsaparam -text -noout $bits_n" );
-            my @res;
-            while( <OPENSSL> ) {
-                push @res, $_;
-            }
-            waitpid( $pid, 0 );
-            close OPENSSL;
-            close NULL;
-
-            my %parts;
-            my $cur_part;
-            foreach (@res) {
-                if (/^\s+(\w):\s*$/) {
-                    $cur_part = lc($1);
-                    next;
-                }
-                if (/^\s*((?:[0-9a-f]{2,2}:?)+)\s*$/) {
-                    $parts{$cur_part} .= $1;
-                }
-            }
-
-            $parts{$_} =~ s/://g for keys %parts;
-
-            if (scalar keys %parts == 3) {
-                my $key = Crypt::DSA::Key->new;
-                $key->p(Math::BigInt->new("0x" . $parts{p}));
-                $key->q(Math::BigInt->new("0x" . $parts{q}));
-                $key->g(Math::BigInt->new("0x" . $parts{g}));
-                return $key;
-            }
-        }
-
-    }
-
-    # Pure Perl version:
+    # TODO: rewrite this, following FIPS 186-4 A.1.1.2 as closely as possible.
+    # Also use sha256 and allow different q size selection.
 
     my($counter, $q, $p, $seed, $seedp1) = (0);
 
     ## Generate q.
-    SCOPE: {
+    do {
         print STDERR "." if $v;
-        $seed = $param{Seed} ? delete $param{Seed} :
-            join '', map chr rand 256, 1..20;
+        $seed = $param{Seed} ? delete $param{Seed} : randombytes(160/8);
         $seedp1 = _seed_plus_one($seed);
         my $md = sha1($seed) ^ sha1($seedp1);
         vec($md, 0, 8) |= 0x80;
         vec($md, 19, 8) |= 0x01;
         $q = bin2mp($md);
-        redo unless isprime($q);
-    }
+    } while (!is_provable_prime($q));
+    # q is proven, so no need to do any more testing on it.
 
     print STDERR "*\n" if $v;
-    my $n = int(("$bits"-1) / 160);
-    my $b = ($bits-1)-Math::BigInt->new($n)*160;
-    my $p_test = Math::BigInt->new(1); $p_test <<= ($bits-1);
+    #my $n = int(("$bits"-1) / 160);
+    #my $b = ($bits-1)-Math::BigInt->new($n)*160;
+    #my $p_test = Math::BigInt->new(1); $p_test <<= ($bits-1);
+    my $n = int(($bits+159)/160)-1;
+    my $b = $bits-1-($n*160);
+    my $p_test = Math::BigInt->new(2)->bpow($bits-1);   # 2^(L-1)
+    my $q2 = Math::BigInt->new(2)->bmul($q);
 
     ## Generate p.
-    SCOPE: {
+    # TODO: We're supposed to start with the original seed + 1 here.
+    while ($counter < 4096) {
         print STDERR "." if $v;
-        my $W = Math::BigInt->new(0);
-        for my $k (0..$n) {
+        # This does the construction of FIPS 186-4 A.1.1.2 steps 11.1-2.
+        # It is *much* faster to do it this way.
+        my $Wstr = '';
+        for my $j (0 .. $n) {
             $seedp1 = _seed_plus_one($seedp1);
-            my $r0 = bin2mp(sha1($seedp1));
-            $r0 %= Math::BigInt->new(2) ** $b
-                if $k == $n;
-            $W += $r0 << (Math::BigInt->new(160) * $k);
+            $Wstr = sha1_hex($seedp1) . $Wstr;
         }
+        my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
         my $X = $W + $p_test;
-        $p = $X - ($X % (2 * $q) - 1);
-        last if $p >= $p_test && isprime($p);
-        redo unless ++$counter >= 4096;
+        $p = $X - ( ($X % $q2) - 1);
+        last if $p >= $p_test && is_prob_prime($p);
+        $counter++;
     }
+    # TODO: if counter is 4096 then we need to go select a new q.
+    # TODO: counter max should be 4L = 4*bits.
+    croak "critical failure, implementation needs to be fixed" unless $counter < 4096;
+    # TODO: p has passed BPSW.  Run 2-3 more M-R tests for FIPS.
+    #       1) put this inside the p test
+    #       2) use sha on seed to get the bases.  Don't waste more entropy.
+    croak "p $p is a BPSW counterexample!"
+      unless is_strong_pseudoprime($p, map { makerandom(Size=>$bits) } 1..3);
 
     print STDERR "*" if $v;
     my $e = ($p - 1) / $q;
