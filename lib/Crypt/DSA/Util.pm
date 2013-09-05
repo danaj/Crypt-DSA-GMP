@@ -3,6 +3,7 @@ use warnings;
 use strict;
 use Math::BigInt lib => "GMP";
 use Crypt::Random::Seed;
+use Digest::SHA qw/sha1_hex/;
 use Carp qw( croak );
 
 use vars qw( $VERSION @ISA @EXPORT_OK );
@@ -10,7 +11,7 @@ use Exporter;
 BEGIN {
     $VERSION   = '1.17';
     @ISA       = qw( Exporter );
-    @EXPORT_OK = qw( bitsize bin2mp mp2bin mod_inverse mod_exp makerandom randombytes );
+    @EXPORT_OK = qw( bitsize bin2mp mp2bin mod_inverse mod_exp makerandom randombytes sha1random );
 }
 
 sub bitsize {
