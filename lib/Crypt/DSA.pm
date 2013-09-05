@@ -137,7 +137,8 @@ Crypt::DSA - DSA Signatures and Key Generation
 I<Crypt::DSA> is an implementation of the DSA (Digital Signature
 Algorithm) signature verification system. The implementation
 itself is pure Perl, although the heavy-duty mathematics underneath
-are provided by the I<Math::Pari> library.
+are provided by the L<Math::BigInt::GMP> and
+L<Math::Prime::Util::GMP> modules.
 
 This package provides DSA signing, signature verification, and key
 generation.
@@ -166,10 +167,11 @@ I<%arg> can contain:
 
 =item * Size
 
-The size in bits of the I<p> value to generate. The I<q> and
-I<g> values are always 160 bits each.
+The size in bits of the I<p> value to generate.  The I<q> value
+will be 160 bits if Size is less than 2048, 256 bits otherwise.
+The size in bits of I<g> is always less than or equal to Size.
 
-This argument is mandatory.
+This argument is mandatory, and must be at least 256.
 
 =item * Seed
 
@@ -188,6 +190,18 @@ meter during I<p> and I<q> generation--this can be useful, since
 the process can be relatively long.
 
 The default is 0.
+
+=item * Prove
+
+Should be 0, 1, I<P>, or I<Q>.  If defined and true, then both
+the primes for I<p> and I<q> will have a primality proof
+constructed and verified.  Setting to I<P> or I<Q> will result
+in just that prime being proven.  The time for proving I<q>
+should be minimal, but proving I<p> when Size is larger than
+1024 can be B<very> time consuming.
+
+The default is 0, which means the standard FIPS 186-4 probable
+prime tests are done.
 
 =back
 
@@ -275,6 +289,11 @@ be created and used in the verification process.
 Add ability to munge format of keys. For example, read/write keys
 from/to key files (SSH key files, etc.), and also write them in
 other formats.
+
+Crypt::DSA was written from the old SHA1-based standards, and it
+is the intention of Crypt::DSA::GMP to support the newer standards.
+NIST withdrew the old Crypt::DSA methods on June 2009.
+The trick is doing this while remaining backward compatible.
 
 =head1 SUPPORT
 

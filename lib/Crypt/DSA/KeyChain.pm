@@ -33,6 +33,13 @@ sub generate_params {
     # code below plus Math::Prime::Util::GMP for primality testing, we're
     # actually faster in many cases, plus we know we're following FIPS.
 
+    # Time for key generations (without proofs, average of 1000)
+    #  512-bit    74ms Perl     29ms OpenSSL
+    #  768-bit   108ms Perl     69ms OpenSSL
+    # 1024-bit   154ms Perl    144ms OpenSSL
+    # 2048-bit   832ms Perl   1144ms OpenSSL
+    # 4096-bit  7269ms Perl   xxxxms OpenSSL
+
     # OpenSSL also has lots of undocumented behavior that doesn't match the
     # Crypt::DSA Pure Perl implementation.  For instance, Size gets rounded
     # up to 512 silently.  In contrast, Crypt::DSA will generate composites
@@ -41,7 +48,6 @@ sub generate_params {
 
     # TODO:
     #   - allow Q size to be selected
-    #   - add provable option for q, maybe p
 
     my($counter, $q, $p, $seed, $seedp1);
 
@@ -213,7 +219,8 @@ I<Crypt::DSA::KeyChain> is a lower-level interface to key
 generation than the interface in I<Crypt::DSA> (the I<keygen>
 method). It allows you to separately generate the I<p>, I<q>,
 and I<g> key parameters, given an optional starting seed, and
-a mandatory bit size for I<p> (I<q> and I<g> are 160 bits each).
+a mandatory bit size for I<p> (I<q> will be 160 or 256 bits,
+and I<g> will be the same size as I<p>).
 
 You can then call I<generate_keys> to generate the public and
 private portions of the key.
@@ -240,8 +247,8 @@ I<Crypt::DSA::Key> object.
 In list context, returns the new I<Crypt::DSA::Key> object,
 along with: the value of the internal counter when a suitable
 prime I<p> was found; the value of I<h> when I<g> was derived;
-and the value of the seed (a 20-byte string) when I<q> was
-found. These values aren't particularly useful in normal
+and the value of the seed (a 20-byte or 32-byte string) when
+I<q> was found. These values aren't particularly useful in normal
 circumstances, but they could be useful.
 
 I<%arg> can contain:
@@ -272,6 +279,26 @@ meter during I<p> and I<q> generation--this can be useful, since
 the process can be relatively long.
 
 The default is 0.
+
+=item * Prove
+
+Should be 0, 1, I<P>, or I<Q>.  If defined and true, then both
+the primes for I<p> and I<q> will have a primality proof
+constructed and verified.  Setting to I<P> or I<Q> will result
+in just that prime being proven.
+
+Using this flag will guarantee the values are prime, which is
+valuable if security is extremely important.  Note that this
+constructs random primes using the method A.1.1.1, then ensures
+they are prime by using a primality proof, rather than using a
+constructive method such as the Maurer or Shawe-Taylor
+algorithms.  The time for proof will depend on the platform
+and the Size parameter.  Proving I<q> should take 100ms or
+less, but I<p> can take a very long time if over 1024 bits.
+
+The default is 0, which means the standard FIPS 186-4 probable
+prime tests are done.
+
 
 =back
 
