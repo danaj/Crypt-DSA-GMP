@@ -17,7 +17,6 @@ sub deserialize {
     my %param = @_;
 
     # TODO: ASN.1 format with sequence of 7 integers
-    # TODO: format: base64 wrapped ssh-dss
     # TODO: format: ssh-dss BASE64  user@email.address
 
     chomp($param{Content});
@@ -43,12 +42,17 @@ sub deserialize {
 
     my $b = BufferWithInt->new_with_init($content);
 
+    # RFC 4716 format.  With ssh-keygen -e.
     if ($b->get_str() eq 'ssh-dss') {
-      warn "Looks like ssh-dss\n";
-      # How to parse?
-    } else {
-      $b->reset_offset;
+      $key->p( $b->get_mp_ssh1 );
+      $key->q( $b->get_mp_ssh1 );
+      $key->g( $b->get_mp_ssh1 );
+      $key->priv_key( $b->get_mp_ssh1 );
+      $key->pub_key( $key->g->copy->bmodpow($key->priv_key, $key->p) );
+      return $key;
     }
+
+    $b->reset_offset;
 
     # This all follows ssh-keygen.c: do_convert_private_ssh2_from_blob
     my $magic = $b->get_int32;
@@ -91,6 +95,15 @@ sub get_mp_ssh2 {
     my $bits = $buf->get_int32;
     my $off = $buf->{offset};
     my $bytes = int(($bits+7) / 8);
+    my $int = bin2mp( $buf->bytes($off, $bytes) );
+    $buf->{offset} += $bytes;
+    $int;
+}
+
+sub get_mp_ssh1 {
+    my $buf = shift;
+    my $bytes = $buf->get_int32;
+    my $off = $buf->{offset};
     my $int = bin2mp( $buf->bytes($off, $bytes) );
     $buf->{offset} += $bytes;
     $int;
