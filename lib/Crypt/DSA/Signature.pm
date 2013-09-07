@@ -21,25 +21,22 @@ sub new {
 BEGIN {
     no strict 'refs';
     for my $meth (qw( r s )) {
+        # Values are stored as Math::BigInt objects
         *$meth = sub {
             my($key, $value) = @_;
-            if (ref $value eq 'Math::Pari') {
-                $key->{$meth} = Math::Pari::pari2pv($value);
+            if (defined $value) {
+              my $str;
+              if (ref($value) eq 'Math::BigInt')  { $key->{$meth} = $value; }
+              elsif (ref($value) eq 'Math::Pari') { $str = Math::Pari::pari2pv($value); }
+              elsif (ref $value)                  { $str = "$value"; }
+              elsif ($value =~ /^0x/)             { $key->{$meth} = Math::BigInt->new($value); }
+              else                                { $str = $value; }
+              $key->{$meth} = Math::BigInt->new("$str")
+                  if defined $str && $str =~ /^\d+$/;
+            } elsif (@_ > 1 && !defined $value) {
+              delete $key->{$meth};
             }
-            elsif (ref $value) {
-                $key->{$meth} = "$value";
-            }
-            elsif ($value) {
-                if ($value =~ /^0x/) {
-                    $key->{$meth} = Math::BigInt->new($value)->bstr;
-                }
-                else {
-                    $key->{$meth} = $value;
-                }
-            }
-            my $ret = $key->{$meth} || "";
-            $ret = Math::BigInt->new("$ret") if $ret =~ /^\d+$/;
-            $ret;
+            $key->{$meth};
         };
     }
 }

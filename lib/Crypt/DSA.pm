@@ -3,7 +3,7 @@ package Crypt::DSA;
 use 5.006;
 use warnings;
 use strict;
-use Digest::SHA qw( sha1 );
+use Digest::SHA qw( sha1 sha256 sha512 );
 use Carp qw( croak );
 use Crypt::DSA::KeyChain;
 use Crypt::DSA::Key;
@@ -33,21 +33,33 @@ sub keygen {
 sub sign {
     my $dsa = shift;
     my %param = @_;
-    my($key, $dgst);
+    my($key, $dgst, $s);
     croak __PACKAGE__, "->sign: Need a Key" unless $key = $param{Key};
     unless ($dgst = $param{Digest}) {
         croak __PACKAGE__, "->sign: Need either Message or Digest"
             unless $param{Message};
-        $dgst = sha1($param{Message});
+        # Determine which standard we're following.
+        $param{Standard} = $dsa->{Standard} 
+          if defined $dsa->{Standard} && !defined $param{Standard};
+        if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
+          $dgst = sha256($param{Message});
+        } else {
+          $dgst = sha1($param{Message});
+        }
     }
 
-    # FIPS 186-4 section 4.6.  Take the leftmost min(N,outlen) bytes.
-    $dgst = substr($dgst, 0, 20) if length($dgst) > 20;
+    my $q = $key->q;
+    $dgst = substr($dgst, 0, int((bitsize($q+7)/8)))
+        if 8*length($dgst) > bitsize($q);
+    my $z = bin2mp($dgst);
 
-    $dsa->_sign_setup($key)
-        unless $key->kinv && $key->r;
-
-    my $s = ($key->kinv * (bin2mp($dgst) + $key->priv_key * $key->r)) % $key->q;
+    $dsa->_sign_setup($key) if !$key->kinv || !$key->r;
+    while (1) {
+      $s = ($key->kinv * ($z + $key->priv_key * $key->r)) % $q;
+      last if $s != 0;
+      $dsa->_sign_setup($key);
+    }
+    croak "Internal error in signing" if $key->r == 0 || $s == 0;
 
     my $sig = Crypt::DSA::Signature->new;
     $sig->r($key->r);
@@ -60,12 +72,12 @@ sub _sign_setup {
     my $key = shift;
     my($k, $r);
     my $q = $key->q;
-    {
-        $k = makerandom(Size => bitsize($q));
-        $k -= $q if $k >= $q;
-        redo if $k == 0;
-    }
-    $r = mod_exp($key->g, $k, $key->p)->bmod($q);
+    do {
+      do {
+        $k = makerandom(Size => bitsize($q))->bmod($q);
+      } while $k == 0;
+      $r = mod_exp($key->g, $k, $key->p)->bmod($q);
+    } while $r == 0;
     my $kinv = mod_inverse($k, $q);
     $key->r($r);
     $key->kinv($kinv);
@@ -79,7 +91,14 @@ sub verify {
     unless ($dgst = $param{Digest}) {
         croak __PACKAGE__, "->verify: Need either Message or Digest"
             unless $param{Message};
-        $dgst = sha1($param{Message});
+        # Determine which standard we're following.
+        $param{Standard} = $dsa->{Standard} 
+          if defined $dsa->{Standard} && !defined $param{Standard};
+        if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
+          $dgst = sha256($param{Message});
+        } else {
+          $dgst = sha1($param{Message});
+        }
     }
     croak __PACKAGE__, "->verify: Need a Signature"
         unless $sig = $param{Signature};
@@ -89,7 +108,8 @@ sub verify {
     return 0 unless $sig->r > 0 && $sig->r < $q;
     return 0 unless $sig->s > 0 && $sig->s < $q;
     my $w = mod_inverse($sig->s, $q);
-    $dgst = substr($dgst, 0, 20) if length($dgst) > 20;
+    $dgst = substr($dgst, 0, int((bitsize($q+7)/8)))
+        if 8*length($dgst) > bitsize($q);
     my $z = bin2mp($dgst);
     my $u1 = $w->copy->bmul($z     )->bmod($q);
     my $u2 = $w->copy->bmul($sig->r)->bmod($q);

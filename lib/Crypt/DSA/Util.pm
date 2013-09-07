@@ -27,16 +27,21 @@ sub bin2mp {
     return Math::BigInt->from_hex(unpack("H*", $s));
 }
 
-# TODO: See i2osp function from Alt::Crypt::RSA::BigInt.  Should be much faster.
+# This is the i2osp function
 sub mp2bin {
     my $p = shift;
-    $p = Math::BigInt->new("$p") unless ref($p) eq 'Math::BigInt';
-    my $base = Math::BigInt->new(256);
     my $res = '';
-    while ($p != 0) {
-        my $r = $p % $base;
-        $p = ($p-$r) / $base;
-        $res = chr($r) . $res;
+    if (ref($p) ne 'Math::BigInt' && $p <= ~0) {
+      do {
+        $res = chr($p & 0xFF) . $res;
+        $p >>= 8;
+      } while $p;
+    } else {
+      $p = Math::BigInt->new("$p") unless ref($p) eq 'Math::BigInt';
+      my $hex = $p->as_hex;
+      $hex =~ s/^0x0*//;
+      substr($hex, 0, 0, '0') if length($hex) % 2;
+      $res = pack("H*", $hex);
     }
     $res;
 }

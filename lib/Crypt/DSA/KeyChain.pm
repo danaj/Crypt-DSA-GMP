@@ -3,7 +3,7 @@ package Crypt::DSA::KeyChain;
 use strict;
 use Math::BigInt lib => "GMP";
 use Math::Prime::Util::GMP qw/is_prob_prime is_provable_prime miller_rabin_random/;
-use Digest::SHA qw( sha1 sha1_hex sha256 sha256_hex);
+use Digest::SHA qw( sha1 sha1_hex);
 use Carp qw( croak );
 
 use vars qw{$VERSION};
@@ -23,131 +23,140 @@ sub generate_params {
     my $keygen = shift;
     my %param  = @_;
     my $bits   = int($param{Size});
-    croak "Number of bits (Size => $bits) is too small" unless $bits >= 256;
-    #delete $param{Seed} if $param{Seed} && length $param{Seed} != 20;
-    my $v = $param{Verbosity};
+    my $v      = $param{Verbosity};
     my $proveq = $param{Prove} && $param{Prove} !~ /^p$/i;
     my $provep = $param{Prove} && $param{Prove} !~ /^q$/i;
+    croak "Number of bits (Size => $bits) is too small" unless $bits >= 256;
 
     # OpenSSL was removed to avoid portability concerns.  With the redone
     # code below plus Math::Prime::Util::GMP for primality testing, we're
-    # actually faster in many cases, plus we know we're following FIPS.
+    # actually faster for larger bit sizes, plus we know we're following the
+    # standard we want and don't get unknown behavior.
 
     # Time for key generations (without proofs, average of 1000)
-    #  512-bit    74ms Perl     29ms OpenSSL
-    #  768-bit   108ms Perl     69ms OpenSSL
-    # 1024-bit   154ms Perl    144ms OpenSSL
-    # 2048-bit   832ms Perl   1144ms OpenSSL
-    # 4096-bit  7269ms Perl   xxxxms OpenSSL
+    #  512-bit     74ms Perl      29ms OpenSSL
+    #  768-bit    108ms Perl      69ms OpenSSL
+    # 1024-bit    154ms Perl     144ms OpenSSL
+    # 2048-bit    832ms Perl   1,144ms OpenSSL
+    # 4096-bit  7,269ms Perl  12,888ms OpenSSL
 
-    # OpenSSL also has lots of undocumented behavior that doesn't match the
-    # Crypt::DSA Pure Perl implementation.  For instance, Size gets rounded
-    # up to 512 silently.  In contrast, Crypt::DSA will generate composites
-    # when the size is small enough. (there should be an RT).
-    # When Size >= 2048, q is bumped to 256 bits.
-
-    # TODO:
-    #   - allow Q size to be selected
+    $param{Standard} = $keygen->{Standard}
+      if defined $keygen->{Standard} && !defined $param{Standard};
+    my $standard = (defined $param{Standard} && $param{Standard} =~ /186-[34]/)
+                 ? 'FIPS 186-4'
+                 : 'FIPS 186-2';
 
     my($counter, $q, $p, $seed, $seedp1);
 
-    if (defined $param{Seed} && length($param{Seed}) == 20) {
+    if ($standard eq 'FIPS 186-2') {
 
-        # Old school.  FIPS 186-4 A.1.1.1, non-approved method.
-        my $n = int(($bits+159)/160)-1;
-        my $b = $bits-1-($n*160);
-        my $p_test = Math::BigInt->new(2)->bpow($bits-1);   # 2^(L-1)
+      croak "FIPS 186-2 does not support Q sizes other than 160"
+        if defined $param{QSize} && $param{QSize} != 160;
+      # See FIPS 186-4 A.1.1.1, non-approved method.
+      delete $param{Seed} if defined $param{Seed} && length($param{Seed}) != 20;
 
-        do {
-            ## Generate q
-            while (1) {
-                print STDERR "." if $v;
-                $seed = (defined $param{Seed}) ? delete $param{Seed}
-                                               : randombytes(20);
-                $seedp1 = _seed_plus_one($seed);
-                my $md = sha1($seed) ^ sha1($seedp1);
-                vec($md, 0, 8) |= 0x80;
-                vec($md, 19, 8) |= 0x01;
-                $q = bin2mp($md);
-                next unless is_prob_prime($q);
-                if ($proveq) { last if is_provable_prime($q); }
-                else         { last if miller_rabin_random($q, 19, "0x$seedp1"); }
-            }
-            print STDERR "*\n" if $v;
+      my $n = int(($bits+159)/160)-1;
+      my $b = $bits-1-($n*160);
+      my $p_test = Math::BigInt->new(2)->bpow($bits-1);   # 2^(L-1)
 
-            ## Generate p.
-            $counter = 0;
-            my $q2 = Math::BigInt->new(2)->bmul($q);
-            while ($counter < 4096) {
-                print STDERR "." if $v;
-                # This does the construction of FIPS 186-4 A.1.1.2 steps 11.1-2.
-                my $Wstr = '';
-                for my $j (0 .. $n) {
-                    $seedp1 = _seed_plus_one($seedp1);
-                    $Wstr = sha1_hex($seedp1) . $Wstr;
-                }
-                my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
-                my $X = $W + $p_test;
-                $p = $X - ( ($X % $q2) - 1);
-                last if $p >= $p_test
-                     && is_prob_prime($p)
-                     && miller_rabin_random($p, 3, "0x$seedp1");
-                $counter++;
-            }
-        } while ($counter >= 4096);
+      do {
+        ## Generate q
+        while (1) {
+          print STDERR "." if $v;
+          $seed = (defined $param{Seed}) ? delete $param{Seed}
+                                         : randombytes(20);
+          $seedp1 = _seed_plus_one($seed);
+          my $md = sha1($seed) ^ sha1($seedp1);
+          vec($md, 0, 8) |= 0x80;
+          vec($md, 19, 8) |= 0x01;
+          $q = bin2mp($md);
+          last if ( $proveq && is_provable_prime($q))
+               || (!$proveq && is_prob_prime($q)
+                            && miller_rabin_random($q, 19, "0x$seedp1"));
+        }
+        print STDERR "*\n" if $v;
 
+        ## Generate p.
+        $counter = 0;
+        my $q2 = Math::BigInt->new(2)->bmul($q);
+        while ($counter < 4096) {
+          print STDERR "." if $v;
+          my $Wstr = '';
+          for my $j (0 .. $n) {
+            $seedp1 = _seed_plus_one($seedp1);
+            $Wstr = sha1_hex($seedp1) . $Wstr;
+          }
+          my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
+          my $X = $W + $p_test;
+          $p = $X - ( ($X % $q2) - 1);
+          if ($p >= $p_test) {
+            last if ( $provep && is_provable_prime($p))
+                 || (!$provep && is_prob_prime($p)
+                              && miller_rabin_random($p, 3, "0x$seedp1"));
+          }
+          $counter++;
+        }
+      } while ($counter >= 4096);
+
+                # ▲▲▲▲▲ FIPS 186-2 ▲▲▲▲▲
     } else {
+                # ▼▼▼▼▼ FIPS 186-4 ▼▼▼▼▼
 
-        # FIPS 186-4 A.1.1.2 approved method
-        my $outlen = 256;   # sha256
-        my $L = $bits;
-        my $N = ($bits >= 2048) ? 256 : 160;  # Just like OpenSSL
-        my $n = int(($L+$outlen-1)/$outlen)-1;
-        my $b = $L-1-($n*$outlen);
-        my $p_test = Math::BigInt->new(2)->bpow($L-1);   # 2^(L-1)
-        my $q_test = Math::BigInt->new(2)->bpow($N-1);   # 2^(N-1)
-        my $seedlen = int( ($N+7)/8 );
-        # See FIPS 186-4 table C.1
-        my $nptests = ($L <= 2048) ? 3 : 2;
-        my $nqtests = ($N <= 160) ? 19 : 27;
+      my $L = $bits;
+      my $N = (defined $param{QSize}) ? $param{QSize}
+                                      : ($bits >= 2048) ? 256 : 160;
+      croak "Invalid Q size, must be between 1 and 512" if $N < 1 || $N > 512;
+      croak "Invalid Q size, must be >= Size+8" if $L < $N+8;
+      my $outlen = ($N <= 256) ? 256 : ($N <= 384) ? 384 : 512;
+      my $sha = Digest::SHA->new($outlen);
 
-        do {
-            ## Generate q
-            while (1) {
-                print STDERR "." if $v;
-                $seed = randombytes($seedlen);
-                my $U = bin2mp(sha256($seed))->bmod($q_test);
-                $q = $q_test + $U + 1 - $U->is_odd();
-                #last if is_prob_prime($q)
-                #     && miller_rabin_random($q, $nqtests, "0x$seed");
-                #last if is_provable_prime($q)
-                if ($proveq) { last if is_provable_prime($q); }
-                else         { last if miller_rabin_random($q, 19, "0x$seed"); }
-            }
-            print STDERR "*\n" if $v;
-            $seedp1 = $seed;
+      delete $param{Seed} if defined $param{Seed}
+                          && 8*length($param{Seed}) < $N;
 
-            ## Generate p.
-            $counter = 0;
-            my $q2 = Math::BigInt->new(2)->bmul($q);
-            while ($counter < 4*$L) {
-                print STDERR "." if $v;
-                # This does the construction of FIPS 186-4 A.1.1.2 steps 11.1-2.
-                my $Wstr = '';
-                for my $j (0 .. $n) {
-                    $seedp1 = _seed_plus_one($seedp1);
-                    $Wstr = sha256_hex($seedp1) . $Wstr;
-                }
-                my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
-                my $X = $W + $p_test;
-                $p = $X - ( ($X % $q2) - 1);
-                if ($p >= $p_test && is_prob_prime($p)) {
-                  if ($provep) { last if is_provable_prime($p); }
-                  else         { last if miller_rabin_random($p, $nptests, "0x$seedp1"); }
-                }
-                $counter++;
-            }
-        } while ($counter >= 4*$L);
+      my $n = int(($L+$outlen-1)/$outlen)-1;
+      my $b = $L-1-($n*$outlen);
+      my $p_test = Math::BigInt->new(2)->bpow($L-1);   # 2^(L-1)
+      my $q_test = Math::BigInt->new(2)->bpow($N-1);   # 2^(N-1)
+      my $seedlen = int( ($N+7)/8 );
+      my $nptests = ($L <= 2048) ? 3 : 2;   # See FIPS 186-4 table C.1
+      my $nqtests = ($N <= 160) ? 19 : 27;
+
+      do {
+        ## Generate q
+        while (1) {
+          print STDERR "." if $v;
+          $seed = randombytes($seedlen);
+          my $digest = $sha->reset->add($seed)->hexdigest;
+          my $U = Math::BigInt->from_hex($digest)->bmod($q_test);
+          $q = $q_test + $U + 1 - $U->is_odd();
+          last if ( $proveq && is_provable_prime($q))
+               || (!$proveq && is_prob_prime($q)
+                            && miller_rabin_random($q, $nqtests, "0x$seed"));
+        }
+        print STDERR "*\n" if $v;
+        $seedp1 = $seed;
+
+        ## Generate p.
+        $counter = 0;
+        my $q2 = Math::BigInt->new(2)->bmul($q);
+        while ($counter < 4*$L) {
+          print STDERR "." if $v;
+          my $Wstr = '';
+          for my $j (0 .. $n) {
+            $seedp1 = _seed_plus_one($seedp1);
+            $Wstr = $sha->reset->add($seedp1)->hexdigest . $Wstr;
+          }
+          my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
+          my $X = $W + $p_test;
+          $p = $X - ( ($X % $q2) - 1);
+          if ($p >= $p_test) {
+            last if ( $provep && is_provable_prime($p))
+                 || (!$provep && is_prob_prime($p)
+                              && miller_rabin_random($p,$nptests, "0x$seedp1"));
+          }
+          $counter++;
+        }
+      } while ($counter >= 4*$L);
 
     }
 
@@ -169,15 +178,12 @@ sub generate_params {
 }
 
 sub generate_keys {
-    my $keygen = shift;
-    my $key = shift;
+    my ($keygen, $key) = @_;
     my($priv_key, $pub_key);
-    SCOPE: {
-        my $i = bitsize($key->q);
-        $priv_key = makerandom(Size => $i);
-        $priv_key -= $key->q if $priv_key >= $key->q;
-        redo if $priv_key == 0;
-    }
+    my $q = $key->q;
+    do {
+        $priv_key = makerandom(Size => bitsize($q))->bmod($q);
+    } while $priv_key == 0;
     $pub_key = mod_exp($key->g, $priv_key, $key->p);
     $key->priv_key($priv_key);
     $key->pub_key($pub_key);
@@ -254,6 +260,14 @@ circumstances, but they could be useful.
 I<%arg> can contain:
 
 =over 4
+
+=item * Standard
+
+Indicates which standard is to be followed.  By default,
+FIPS 186-2 is used, which maintains backward compatibility
+with the Crypt::DSA Perl code and old OpenSSL versions.  If
+C<FIPS 186-3> or C<FIPS 186-4> is given, then the FIPS 186-4
+key generation will be used.
 
 =item * Size
 

@@ -16,6 +16,10 @@ sub deserialize {
     my $key = shift;
     my %param = @_;
 
+    # TODO: ASN.1 format with sequence of 7 integers
+    # TODO: format: base64 wrapped ssh-dss
+    # TODO: format: ssh-dss BASE64  user@email.address
+
     chomp($param{Content});
     my($head, $object, $content, $tail) = $param{Content} =~
         m:(---- BEGIN ([^\n\-]+) ----)\n(.+)(---- END .*? ----)$:s;
@@ -37,8 +41,16 @@ sub deserialize {
     $content = join "\n", @real;
     $content = decode_base64($content);
 
-    my $b = BufferWithInt->new;
-    $b->append($content);
+    my $b = BufferWithInt->new_with_init($content);
+
+    if ($b->get_str() eq 'ssh-dss') {
+      warn "Looks like ssh-dss\n";
+      # How to parse?
+    } else {
+      $b->reset_offset;
+    }
+
+    # This all follows ssh-keygen.c: do_convert_private_ssh2_from_blob
     my $magic = $b->get_int32;
     return unless $magic == PRIVKEY_MAGIC;
 
@@ -111,6 +123,16 @@ I<Crypt::DSA::Key>, and all access to SSH2 files (reading DSA
 keys from disk, etc.) should be done through that module.
 
 Read the I<Crypt::DSA::Key> documentation for more details.
+
+=head1 TODO
+
+This doesn't handle data produced by OpenSSH.  To see the data
+from a DSA key in their format:
+
+   cat file.dsa | grep -v -- ----- | tr -d '\n' | base64 -d | \
+                  openssl asn1parse -inform DER
+
+So we will need Convert::ASN1 to handle this.
 
 =head1 AUTHOR & COPYRIGHTS
 
