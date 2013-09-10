@@ -42,6 +42,8 @@ sub sign {
         $param{Standard} = $dsa->{Standard} 
           if defined $dsa->{Standard} && !defined $param{Standard};
         if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
+          # TODO: SP 800-57 rev 3 indicates we need to look at bitsize(q)
+          # and use a stronger hash.
           $dgst = sha256($param{Message});
         } else {
           $dgst = sha1($param{Message});

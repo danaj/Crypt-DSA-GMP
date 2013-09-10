@@ -16,42 +16,43 @@ sub deserialize {
     my $key = shift;
     my %param = @_;
 
-    # TODO: ASN.1 format with sequence of 7 integers
-    # TODO: format: ssh-dss BASE64  user@email.address
-
     chomp($param{Content});
-    my($head, $object, $content, $tail) = $param{Content} =~
-        m:(---- BEGIN ([^\n\-]+) ----)\n(.+)(---- END .*? ----)$:s;
-    my @lines = split /\n/, $content;
-    my $escaped = 0;
-    my @real;
-    for my $l (@lines) {
-        if (substr($l, -1) eq '\\') {
-            $escaped++;
-            next;
-        }
-        next if index($l, ':') != -1;
-        if ($escaped) {
-            $escaped--;
-            next;
-        }
-        push @real, $l;
-    }
-    $content = join "\n", @real;
-    $content = decode_base64($content);
+    my $base64;
 
+    if ($param{Content} =~ m:ssh-dss (.+)\s+\S+\s*$:s) {
+      $base64 = $1;
+    } elsif ($param{Content} =~ /---- BEGIN/) {
+      my($head, $object, $content, $tail) = $param{Content} =~
+        m:(---- BEGIN ([^\n\-]+) ----)\n(.+)(---- END .*? ----)$:s;
+      my @lines = split /\n/, $content;
+      my $escaped = 0;
+      my @real;
+      for my $l (@lines) {
+          if (substr($l, -1) eq '\\') {
+              $escaped++;
+              next;
+          }
+          next if index($l, ':') != -1;
+          if ($escaped) {
+              $escaped--;
+              next;
+          }
+          push @real, $l;
+      }
+      $base64 = join "\n", @real;
+    }
+    my $content = decode_base64($base64);
     my $b = BufferWithInt->new_with_init($content);
 
-    # RFC 4716 format.  With ssh-keygen -e.
-    if ($b->get_str() eq 'ssh-dss') {
-      $key->p( $b->get_mp_ssh1 );
-      $key->q( $b->get_mp_ssh1 );
-      $key->g( $b->get_mp_ssh1 );
-      $key->priv_key( $b->get_mp_ssh1 );
+    if ($b->get_int32 == 7 && $b->get_bytes(7) eq 'ssh-dss') {
+      # RFC 4716 format.  With ssh-keygen -e.
+      $key->p( $b->get_mp_ssh2b );
+      $key->q( $b->get_mp_ssh2b );
+      $key->g( $b->get_mp_ssh2b );
+      $key->priv_key( $b->get_mp_ssh2b );
       $key->pub_key( $key->g->copy->bmodpow($key->priv_key, $key->p) );
       return $key;
     }
-
     $b->reset_offset;
 
     # This all follows ssh-keygen.c: do_convert_private_ssh2_from_blob
@@ -100,7 +101,7 @@ sub get_mp_ssh2 {
     $int;
 }
 
-sub get_mp_ssh1 {
+sub get_mp_ssh2b {
     my $buf = shift;
     my $bytes = $buf->get_int32;
     my $off = $buf->{offset};

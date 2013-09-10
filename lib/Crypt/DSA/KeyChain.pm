@@ -107,6 +107,7 @@ sub generate_params {
                                       : ($bits >= 2048) ? 256 : 160;
       croak "Invalid Q size, must be between 1 and 512" if $N < 1 || $N > 512;
       croak "Invalid Q size, must be >= Size+8" if $L < $N+8;
+      # See NIST SP 800-57 rev 3, table 3.  sha256 is ok for all sizes
       my $outlen = ($N <= 256) ? 256 : ($N <= 384) ? 384 : 512;
       my $sha = Digest::SHA->new($outlen);
 
