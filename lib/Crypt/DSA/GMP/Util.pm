@@ -10,10 +10,9 @@ BEGIN {
 use Carp qw( croak );
 use Math::BigInt lib => "GMP";
 use Crypt::Random::Seed;
-use Digest::SHA qw/sha1_hex/;
 
 use base qw( Exporter );
-our @EXPORT_OK = qw( bitsize bin2mp mp2bin mod_inverse mod_exp makerandom randombytes sha1random );
+our @EXPORT_OK = qw( bitsize bin2mp mp2bin mod_inverse mod_exp randombytes makerandom makerandomrange );
 our %EXPORT_TAGS = (all => [ @EXPORT_OK ]);
 
 sub bitsize {
@@ -71,20 +70,42 @@ sub mod_inverse {
   }
 }
 
+# Generate uniform random number in range [2^(bits-1),2^bits-1]
 sub makerandom {
     my %param = @_;
-    my $size = $param{Size};
-    my $bytes = int($size / 8) + 1;
+    my $bits = $param{Size};
+    croak "makerandom must have Size >= 1" unless defined $bits && $bits > 0;
+    return Math::BigInt->bone if $bits == 1;
 
-    my $r = randombytes($bytes);
-    my $down = $size - 1;
-    $r = unpack 'H*', pack 'B*', '0' x ( $size % 8 ? 8 - $size % 8 : 0 ) .
-        '1' . unpack "b$down", $r;
-    Math::BigInt->new('0x' . $r);
+    my $randbits = $bits - 1;
+    my $randbytes = int(($randbits+7)/8);
+    my $randbinary = unpack("B*", randombytes( $randbytes ));
+    return Math::BigInt->from_bin( '1' . substr($randbinary,0,$randbits) );
+}
+
+# Generate uniform random number in range [0, $max]
+sub makerandomrange {
+  my $max = shift;
+  $max = Math::BigInt->new("$max") unless ref($max) eq 'Math::BigInt';
+  my $range = $max->copy->binc;
+  my $bits = length($range->as_bin) - 2;
+  my $bytes = 1 + int(($bits+7)/8);
+  my $rmax = Math::BigInt->bone->blsft(8*$bytes)->bdec();
+  my $overflow = $rmax - ($rmax % $range);
+  my $U;
+  do {
+    $U = Math::BigInt->from_hex( unpack("H*", randombytes($bytes)) );
+  } while $U >= $overflow;
+  $U->bmod($range);
+  return $U;
 }
 
 1;
 __END__
+
+=pod
+
+=for stopwords mod_exp($a makerandom
 
 =head1 NAME
 
@@ -96,8 +117,8 @@ Crypt::DSA::GMP::Util - DSA Utility functions
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::GMP::Util> contains a set of exportable utility functions
-used through the I<Crypt::DSA::GMP> set of libraries.
+L<Crypt::DSA::GMP::Util> contains a set of exportable utility functions
+used through the L<Crypt::DSA::GMP> module.
 
 =head2 bitsize($n)
 
@@ -121,6 +142,26 @@ Computes $a ^ $exp mod $n and returns the value.
 
 Computes the multiplicative inverse of $a mod $n and returns the
 value.
+
+=head2 randombytes($n)
+
+Returns I<$n> random bytes from the entropy source.  The entropy
+source is a L<Crypt::Random::Seed> non-blocking source.
+
+=head2 makerandom
+
+  $n = makerandom(Size => 512);
+
+Takes a I<Size> argument and creates a random L<Math::BigInt>
+with exactly that number of bits using data from L</randombytes>.
+The high order bit will always be set.
+
+=head2 makerandomrange($max)
+
+  $n = makerandomrange( $q );  # 0 <= n <= q
+
+Returns a L<Math::BigInt> uniformly randomly selected between
+I<0> and I<$max>.  Random data is provided by L</randombytes>.
 
 =head1 AUTHOR & COPYRIGHTS
 

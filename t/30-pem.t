@@ -6,7 +6,7 @@ use Test::More;
 
 BEGIN {
   if ( eval { require Convert::PEM; 1; } ) {
-    plan tests => 26;
+    plan tests => 28;
   } else {
     plan skip_all => 'Requires Convert::PEM';
   }
@@ -51,6 +51,7 @@ is($key->q, $key2->q, '->q of both keys is identical');
 is($key->g, $key2->g, '->g of both keys is identical');
 is($key->pub_key, $key2->pub_key, '->pub_key of both keys is identical');
 is($key->priv_key, $key2->priv_key, '->priv_key of both keys is identical');
+unlink $keyfile;
 
 ## Now remove the private key portion of the key. write should automatically
 ## write a public key format instead, and new should be able to understand
@@ -64,5 +65,10 @@ is($key->q, $key2->q, '->q of both keys is identical');
 is($key->g, $key2->g, '->g of both keys is identical');
 is($key->pub_key, $key2->pub_key, '->pub_key of both keys is identical');
 ok(!$key->priv_key, 'No private key');
+unlink $keyfile;
+
+ok($key->write( Filename => $keyfile), 'Writing keyfile with native type works');
+$key2 = Crypt::DSA::GMP::Key->new( Type => 'PEM', Filename => $keyfile );
+ok($key2, 'Reading keyfile without private key works');
 
 unlink $keyfile;

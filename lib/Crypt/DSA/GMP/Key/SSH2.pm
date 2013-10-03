@@ -84,6 +84,7 @@ sub serialize {
     die "serialize is unimplemented";
 }
 
+
 package BufferWithInt;
 use strict;
 
@@ -115,28 +116,39 @@ __END__
 
 =head1 NAME
 
-Crypt::DSA::Key::SSH2 - Read/write DSA SSH2 files
+Crypt::DSA::GMP::Key::SSH2 - Read/write DSA SSH2 files
 
 =head1 SYNOPSIS
 
-    use Crypt::DSA::Key;
-    my $key = Crypt::DSA::Key->new( Type => 'SSH2', ...);
+    use Crypt::DSA::GMP::Key;
+    my $key = Crypt::DSA::GMP::Key->new( Type => 'SSH2', ...);
     $key->write( Type => 'SSH2', ...);
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::Key::SSH2> provides an interface to reading and
-writing DSA SSH2 files, using I<Data::Buffer>, which provides
+L<Crypt::DSA::GMP::Key::SSH2> provides an interface to reading and
+writing DSA SSH2 files, using L<Data::Buffer>, which provides
 functionality for SSH-compatible binary in/out buffers.
 
 Currently encrypted key files are not supported.
 
 You shouldn't use this module directly. As the SYNOPSIS above
 suggests, this module should be considered a plugin for
-I<Crypt::DSA::Key>, and all access to SSH2 files (reading DSA
+L<Crypt::DSA::GMP::Key>, and all access to SSH2 files (reading DSA
 keys from disk, etc.) should be done through that module.
 
-Read the I<Crypt::DSA::Key> documentation for more details.
+Read the L<Crypt::DSA::GMP::Key> documentation for more details.
+
+=head1 SUBCLASS METHODS
+
+=head2 serialize
+
+Returns the appropriate serialization blob of the key.
+
+=head2 deserialize
+
+Given an argument hash containing I<Content> and I<Password>, this
+unpacks the serialized key into the self object.
 
 =head1 TODO
 

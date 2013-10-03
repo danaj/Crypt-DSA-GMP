@@ -41,7 +41,7 @@ BEGIN {
     }
 }
 
-sub asn {
+sub _asn {
     require Convert::ASN1;
     my $asn = Convert::ASN1->new;
     $asn->prepare('SEQUENCE { r INTEGER, s INTEGER }') or croak $asn->{error};
@@ -49,18 +49,16 @@ sub asn {
 }
 
 sub deserialize {
-    my $sig = shift;
-    my %param = @_;
-    my $asn = __PACKAGE__->asn;
-    my $ref;
-    require MIME::Base64;
-    ## Turn off warnings, because we're attempting to base64-decode content
-    ## that may not be base64-encoded.
-    local $^W = 0;
-    for ($param{Content}, MIME::Base64::decode_base64($param{Content})) {
-        my $out = $asn->decode($_);
-        $ref = $out;
-        last if $out;
+    my ($sig, %param) = @_;
+    my $asn = __PACKAGE__->_asn;
+    my $ref = $asn->decode($param{Content});
+    if (!$ref) {
+      require MIME::Base64;
+      my $base64_content = do {
+        no warnings;
+        MIME::Base64::decode_base64($param{Content});
+      };
+      $ref = $asn->decode($base64_content);
     }
     croak "Invalid Content" unless $ref;
     $sig->s($ref->{s});
@@ -69,9 +67,8 @@ sub deserialize {
 }
 
 sub serialize {
-    my $sig = shift;
-    my %param = @_;
-    my $asn = __PACKAGE__->asn;
+    my ($sig, %param) = @_;
+    my $asn = __PACKAGE__->_asn;
     my $buf = $asn->encode({ s => $sig->s, r => $sig->r })
         or croak $asn->{error};
     $buf;
@@ -84,25 +81,25 @@ __END__
 
 =head1 NAME
 
-Crypt::DSA::Signature - DSA signature object
+Crypt::DSA::GMP::Signature - DSA signature object
 
 =head1 SYNOPSIS
 
-    use Crypt::DSA::Signature;
-    my $sig = Crypt::DSA::Signature->new;
+    use Crypt::DSA::GMP::Signature;
+    my $sig = Crypt::DSA::GMP::Signature->new;
 
     $sig->r($r);
     $sig->s($s);
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::Signature> represents a DSA signature. It has 2 methods,
-I<r> and I<s>, which are the big number representations of the 2 pieces of
-the DSA signature.
+L<Crypt::DSA::GMP::Signature> represents a DSA signature. It has two
+methods, L</r> and L</s>, which are the L<Math::BigInt> representations
+of the two pieces of the DSA signature.
 
 =head1 USAGE
 
-=head2 Crypt::DSA::Signature->new( %options )
+=head2 Crypt::DSA::GMP::Signature->new( %options )
 
 Creates a new signature object, and optionally initializes it with the
 information in I<%options>, which can contain:
@@ -120,8 +117,8 @@ this looks like:
     }
 
 If I<Content> is provided, I<new> will automatically call the L</deserialize>
-method to parse the content, and set the I<r> and I<s> methods on the
-resulting I<Crypt::DSA::Signature> object.
+method to parse the content, and set the L</r> and L</s> methods on the
+resulting L<Crypt::DSA::GMP::Signature> object.
 
 =back
 
@@ -136,6 +133,14 @@ above.
 =head2 deserialize
 
 Deserializes the ASN.1-encoded representation into a signature object.
+
+=head2 r
+
+One half of the DSA signature for a message.
+
+=head2 s
+
+One half of the DSA signature for a message.
 
 =head1 AUTHOR & COPYRIGHTS
 

@@ -14,7 +14,7 @@ use Digest::SHA qw( sha1 sha256 sha512 );
 use Crypt::DSA::GMP::KeyChain;
 use Crypt::DSA::GMP::Key;
 use Crypt::DSA::GMP::Signature;
-use Crypt::DSA::GMP::Util qw( bitsize bin2mp mod_inverse mod_exp makerandom );
+use Crypt::DSA::GMP::Util qw( bitsize bin2mp mod_inverse mod_exp makerandomrange );
 
 sub new {
     my $class = shift;
@@ -33,7 +33,7 @@ sub keygen {
 sub sign {
     my $dsa = shift;
     my %param = @_;
-    my($key, $dgst, $s);
+    my($key, $dgst);
     croak __PACKAGE__, "->sign: Need a Key" unless $key = $param{Key};
     unless ($dgst = $param{Digest}) {
         croak __PACKAGE__, "->sign: Need either Message or Digest"
@@ -50,39 +50,32 @@ sub sign {
         }
     }
 
-    my $q = $key->q;
-    $dgst = substr($dgst, 0, int((bitsize($q+7)/8)))
-        if 8*length($dgst) > bitsize($q);
-    my $z = bin2mp($dgst);
+    # FIPS 186-4, section 4.6 "DSA Signature Generation"
+    my ($p, $q, $g) = ($key->p, $key->q, $key->g);
 
-    $dsa->_sign_setup($key) if !$key->kinv || !$key->r;
-    while (1) {
-      $s = ($key->kinv * ($z + $key->priv_key * $key->r)) % $q;
-      last if $s != 0;
-      $dsa->_sign_setup($key);
-    }
-    croak "Internal error in signing" if $key->r == 0 || $s == 0;
+    # compute z as the leftmost MIN(N, outlen) bits of the digest
+    my $z = bin2mp($dgst);
+    my ($N, $outlen) = ( bitsize($q), 8*length($dgst) );
+    $z->brsft($outlen - $N) if $outlen > $N;
+
+    # Generate r and s, ensuring neither are zero.
+    my ($r, $s);
+    do {
+      my ($k, $kinv);
+      do {
+        # k is per-message random number 0 < k < q
+        $k = makerandomrange( $q-2 ) + 1;
+        $r = mod_exp($g, $k, $p)->bmod($q);
+      } while $r == 0;
+      $kinv = mod_inverse($k, $q);
+      $s = ($kinv * ($z + $key->priv_key * $r)) % $q;
+    } while $s == 0;
+    croak "Internal error in signing" if $r == 0 || $s == 0;
 
     my $sig = Crypt::DSA::GMP::Signature->new;
-    $sig->r($key->r);
+    $sig->r($r);
     $sig->s($s);
     $sig;
-}
-
-sub _sign_setup {
-    my $dsa = shift;
-    my $key = shift;
-    my($k, $r);
-    my $q = $key->q;
-    do {
-      do {
-        $k = makerandom(Size => bitsize($q))->bmod($q);
-      } while $k == 0;
-      $r = mod_exp($key->g, $k, $key->p)->bmod($q);
-    } while $r == 0;
-    my $kinv = mod_inverse($k, $q);
-    $key->r($r);
-    $key->kinv($kinv);
 }
 
 sub verify {
@@ -105,21 +98,20 @@ sub verify {
     croak __PACKAGE__, "->verify: Need a Signature"
         unless $sig = $param{Signature};
 
-    my $p = $key->p;
-    my $q = $key->q;
-    return 0 unless $sig->r > 0 && $sig->r < $q;
-    return 0 unless $sig->s > 0 && $sig->s < $q;
-    my $w = mod_inverse($sig->s, $q);
+    my ($p, $q, $r, $s) = ($key->p, $key->q, $sig->r, $sig->s);
+    return 0 unless $r > 0 && $r < $q;
+    return 0 unless $s > 0 && $s < $q;
+    my $w = mod_inverse($s, $q);
     $dgst = substr($dgst, 0, int((bitsize($q+7)/8)))
         if 8*length($dgst) > bitsize($q);
     my $z = bin2mp($dgst);
-    my $u1 = $w->copy->bmul($z     )->bmod($q);
-    my $u2 = $w->copy->bmul($sig->r)->bmod($q);
+    my $u1 = $w->copy->bmul($z)->bmod($q);
+    my $u2 = $w->copy->bmul($r)->bmod($q);
     my $v =        mod_exp($key->g,       $u1, $p)
             ->bmul(mod_exp($key->pub_key, $u2, $p))
             ->bmod($p)
             ->bmod($q);
-    $v == $sig->r;
+    $v == $r;
 }
 
 1;

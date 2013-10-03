@@ -13,7 +13,7 @@ use Math::Prime::Util::GMP qw/is_prob_prime is_provable_prime miller_rabin_rando
 use Digest::SHA qw( sha1 sha1_hex);
 
 use Crypt::DSA::GMP::Key;
-use Crypt::DSA::GMP::Util qw( bin2mp bitsize mod_exp makerandom randombytes );
+use Crypt::DSA::GMP::Util qw( bin2mp bitsize mod_exp makerandomrange randombytes );
 
 sub new {
     my ($class, @params) = @_;
@@ -107,6 +107,7 @@ sub generate_params {
                                       : ($bits >= 2048) ? 256 : 160;
       croak "Invalid Q size, must be between 1 and 512" if $N < 1 || $N > 512;
       croak "Invalid Q size, must be >= Size+8" if $L < $N+8;
+      # TODO: outlen must be >= N, or the q generation won't work right.
       # See NIST SP 800-57 rev 3, table 3.  sha256 is ok for all sizes
       my $outlen = ($N <= 256) ? 256 : ($N <= 384) ? 384 : 512;
       my $sha = Digest::SHA->new($outlen);
@@ -180,12 +181,9 @@ sub generate_params {
 
 sub generate_keys {
     my ($keygen, $key) = @_;
-    my($priv_key, $pub_key);
     my $q = $key->q;
-    do {
-        $priv_key = makerandom(Size => bitsize($q))->bmod($q);
-    } while $priv_key == 0;
-    $pub_key = mod_exp($key->g, $priv_key, $key->p);
+    my $priv_key = makerandomrange( $q-2 ) + 1;  # 0 < x < q
+    my $pub_key = mod_exp($key->g, $priv_key, $key->p);
     $key->priv_key($priv_key);
     $key->pub_key($pub_key);
 }
@@ -308,8 +306,8 @@ constructs random primes using the method A.1.1.1, then ensures
 they are prime by using a primality proof, rather than using a
 constructive method such as the Maurer or Shawe-Taylor
 algorithms.  The time for proof will depend on the platform
-and the Size parameter.  Proving I<q> should take 100ms or
-less, but I<p> can take a very long time if over 1024 bits.
+and the Size parameter.  Proving I<q> should take 100 milliseconds
+or less, but I<p> can take a very long time if over 1024 bits.
 
 The default is 0, which means the standard FIPS 186-4 probable
 prime tests are done.

@@ -149,28 +149,41 @@ sub _pem {
 1;
 __END__
 
+=pod
+
 =head1 NAME
 
-Crypt::DSA::Key::PEM - Read/write DSA PEM files
+Crypt::DSA::GMP::Key::PEM - Read/write DSA PEM files
 
 =head1 SYNOPSIS
 
-    use Crypt::DSA::Key;
-    my $key = Crypt::DSA::Key->new( Type => 'PEM', ...);
+    use Crypt::DSA::GMP::Key;
+    my $key = Crypt::DSA::GMP::Key->new( Type => 'PEM', ...);
     $key->write( Type => 'PEM', ...);
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::Key::PEM> provides an interface to reading and
-writing DSA PEM files, using I<Convert::PEM>. The files are
+L<Crypt::DSA::GMP::Key::PEM> provides an interface to reading and
+writing DSA PEM files, using L<Convert::PEM>. The files are
 ASN.1-encoded and optionally encrypted.
 
 You shouldn't use this module directly. As the SYNOPSIS above
 suggests, this module should be considered a plugin for
-I<Crypt::DSA::Key>, and all access to PEM files (reading DSA
+L<Crypt::DSA::GMP::Key>, and all access to PEM files (reading DSA
 keys from disk, etc.) should be done through that module.
 
-Read the I<Crypt::DSA::Key> documentation for more details.
+Read the L<Crypt::DSA::GMP::Key> documentation for more details.
+
+=head1 SUBCLASS METHODS
+
+=head2 serialize
+
+Returns the appropriate serialization blob of the key.
+
+=head2 deserialize
+
+Given an argument hash containing I<Content> and I<Password>, this
+unpacks the serialized key into the self object.
 
 =head1 AUTHOR & COPYRIGHTS
 

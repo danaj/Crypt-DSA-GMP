@@ -1,9 +1,12 @@
-- Use something like Module::Load in Key read/write instead of the string
-  eval stuff.
-
 - Add FIPS 186-4 tests
 
 - We're using NonBlocking=>1 currently.  Consider blocking or a way for the
   client to tell us.
 
 - Documentation.
+
+- Tests for SSH2
+
+- coverage
+
+- asn1 etc. in ssh2 file.  Go through the different possible formats.
