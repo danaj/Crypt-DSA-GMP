@@ -1,12 +1,14 @@
 language: "perl"
 perl:
   - "5.16"
-  - "5.14"
-  - "5.12"
   - "5.10"
 
+before_install:
+    - sudo apt-get install libgmp3-dev
+
 install:
-    - cpanm -v --installdeps --notest --mirror http://cpan.mirrors.travis-ci.org --mirror http://dl.ambiweb.de/mirrors/ftp.cpan.org --mirror http://cpan.cse.msu.edu .
+    #- cpanm -v --installdeps --notest --mirror http://cpan.mirrors.travis-ci.org --mirror http://dl.ambiweb.de/mirrors/ftp.cpan.org --mirror http://cpan.cse.msu.edu .
+    - cpanm -v --installdeps --notest .
 
 script: "perl Makefile.PL; make test"
 
