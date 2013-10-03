@@ -1,16 +1,16 @@
-package Crypt::DSA::Key;
-
+package Crypt::DSA::GMP::Key;
 use strict;
-use Math::BigInt lib => "GMP";
-use Carp qw( croak );
-use Crypt::DSA::Util qw( bitsize );
+use warnings;
 
-
-
-use vars qw{$VERSION};
 BEGIN {
-    $VERSION = '1.17';
+  $Crypt::DSA::GMP::Key::AUTHORITY = 'cpan:DANAJ';
+  $Crypt::DSA::GMP::Key::VERSION = '0.01';
 }
+
+use Carp qw( croak );
+use Math::BigInt lib => "GMP";
+use Crypt::DSA::GMP::Util qw( bitsize );
+
 
 sub new {
     my $class = shift;

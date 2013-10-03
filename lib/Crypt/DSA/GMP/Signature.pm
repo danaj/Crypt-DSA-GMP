@@ -1,12 +1,13 @@
-package Crypt::DSA::Signature;
-
+package Crypt::DSA::GMP::Signature;
 use strict;
-use Carp qw( croak );
+use warnings;
 
-use vars qw{$VERSION};
 BEGIN {
-    $VERSION = '1.17';
+  $Crypt::DSA::GMP::Signature::AUTHORITY = 'cpan:DANAJ';
+  $Crypt::DSA::GMP::Signature::VERSION = '0.01';
 }
+
+use Carp qw( croak );
 
 sub new {
     my $class = shift;

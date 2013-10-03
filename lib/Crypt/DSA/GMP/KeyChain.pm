@@ -1,18 +1,19 @@
-package Crypt::DSA::KeyChain;
-
+package Crypt::DSA::GMP::KeyChain;
 use strict;
+use warnings;
+
+BEGIN {
+  $Crypt::DSA::GMP::KeyChain::AUTHORITY = 'cpan:DANAJ';
+  $Crypt::DSA::GMP::KeyChain::VERSION = '0.01';
+}
+
+use Carp qw( croak );
 use Math::BigInt lib => "GMP";
 use Math::Prime::Util::GMP qw/is_prob_prime is_provable_prime miller_rabin_random/;
 use Digest::SHA qw( sha1 sha1_hex);
-use Carp qw( croak );
 
-use vars qw{$VERSION};
-BEGIN {
-    $VERSION = '1.17';
-}
-
-use Crypt::DSA::Key;
-use Crypt::DSA::Util qw( bin2mp bitsize mod_exp makerandom randombytes );
+use Crypt::DSA::GMP::Key;
+use Crypt::DSA::GMP::Util qw( bin2mp bitsize mod_exp makerandom randombytes );
 
 sub new {
     my $class = shift;
@@ -170,7 +171,7 @@ sub generate_params {
     } while $g == 1;
     print STDERR "\n" if $v;
 
-    my $key = Crypt::DSA::Key->new;
+    my $key = Crypt::DSA::::GMP::Key->new;
     $key->p($p);
     $key->q($q);
     $key->g($g);

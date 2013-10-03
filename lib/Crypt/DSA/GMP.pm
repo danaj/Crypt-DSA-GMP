@@ -1,25 +1,25 @@
-package Crypt::DSA;
-
+package Crypt::DSA::GMP;
 use 5.006;
-use warnings;
 use strict;
-use Digest::SHA qw( sha1 sha256 sha512 );
-use Carp qw( croak );
-use Crypt::DSA::KeyChain;
-use Crypt::DSA::Key;
-use Crypt::DSA::Signature;
-use Crypt::DSA::Util qw( bitsize bin2mp mod_inverse mod_exp makerandom );
-use Math::BigInt lib => "GMP";
+use warnings;
 
-use vars qw( $VERSION );
 BEGIN {
-    $VERSION = '1.00';
+  $Crypt::DSA::GMP::AUTHORITY = 'cpan:DANAJ';
+  $Crypt::DSA::GMP::VERSION = '0.01';
 }
+
+use Carp qw( croak );
+use Math::BigInt lib => "GMP";
+use Digest::SHA qw( sha1 sha256 sha512 );
+use Crypt::DSA::GMP::KeyChain;
+use Crypt::DSA::GMP::Key;
+use Crypt::DSA::GMP::Signature;
+use Crypt::DSA::GMP::Util qw( bitsize bin2mp mod_inverse mod_exp makerandom );
 
 sub new {
     my $class = shift;
     my $dsa = bless { @_ }, $class;
-    $dsa->{_keychain} = Crypt::DSA::KeyChain->new(@_);
+    $dsa->{_keychain} = Crypt::DSA::GMP::KeyChain->new(@_);
     $dsa;
 }
 
@@ -63,7 +63,7 @@ sub sign {
     }
     croak "Internal error in signing" if $key->r == 0 || $s == 0;
 
-    my $sig = Crypt::DSA::Signature->new;
+    my $sig = Crypt::DSA::GMP::Signature->new;
     $sig->r($key->r);
     $sig->s($s);
     $sig;
@@ -130,12 +130,12 @@ __END__
 
 =head1 NAME
 
-Crypt::DSA - DSA Signatures and Key Generation
+Crypt::DSA::GMP - DSA Signatures and Key Generation
 
 =head1 SYNOPSIS
 
-    use Crypt::DSA;
-    my $dsa = Crypt::DSA->new;
+    use Crypt::DSA::GMP;
+    my $dsa = Crypt::DSA::GMP->new;
 
     my $key = $dsa->keygen(
                    Size      => 512,
@@ -156,7 +156,7 @@ Crypt::DSA - DSA Signatures and Key Generation
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA> is an implementation of the DSA (Digital Signature
+I<Crypt::DSA::GMP> is an implementation of the DSA (Digital Signature
 Algorithm) signature verification system. The implementation
 itself is pure Perl, although the heavy-duty mathematics underneath
 are provided by the L<Math::BigInt::GMP> and
@@ -167,7 +167,7 @@ generation.
 
 =head1 USAGE
 
-The I<Crypt::DSA> public interface is similar to that of
+The I<Crypt::DSA::GMP> public interface is similar to that of
 I<Crypt::RSA>. This was done intentionally.
 
 =head2 Crypt::DSA->new
@@ -232,7 +232,7 @@ prime tests are done.
 Signs a message (or the digest of a message) using the private
 portion of the DSA key and returns the signature.
 
-The return value--the signature--is a I<Crypt::DSA::Signature>
+The return value--the signature--is a I<Crypt::DSA::GMP::Signature>
 object.
 
 I<%arg> can include:
@@ -248,7 +248,7 @@ You must provide either this argument or I<Message> (see below).
 
 =item * Key
 
-The I<Crypt::DSA::Key> object with which the signature will be
+The I<Crypt::DSA::GMP::Key> object with which the signature will be
 generated. Should contain a private key attribute (I<priv_key>).
 
 This argument is required.
@@ -279,7 +279,7 @@ I<%arg> can contain:
 
 =item * Key
 
-Key of the signer of the message; a I<Crypt::DSA::Key> object.
+Key of the signer of the message; a I<Crypt::DSA::GMP::Key> object.
 The public portion of the key is used to verify the signature.
 
 This argument is required.
@@ -287,7 +287,7 @@ This argument is required.
 =item * Signature
 
 The signature itself. Should be in the same format as returned
-from I<sign>, a I<Crypt::DSA::Signature> object.
+from I<sign>, a I<Crypt::DSA::GMP::Signature> object.
 
 This argument is required.
 

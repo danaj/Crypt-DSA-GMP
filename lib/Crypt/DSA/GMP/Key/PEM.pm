@@ -1,15 +1,17 @@
-package Crypt::DSA::Key::PEM;
-
+package Crypt::DSA::GMP::Key::PEM;
 use strict;
+use warnings;
+
+BEGIN {
+  $Crypt::DSA::GMP::Key::PEM::AUTHORITY = 'cpan:DANAJ';
+  $Crypt::DSA::GMP::Key::PEM::VERSION = '0.01';
+}
+
+use base qw( Crypt::DSA::GMP::Key );
+
 use Carp qw( croak );
 use Convert::PEM;
-use Crypt::DSA::Key;
-
-use vars qw{$VERSION @ISA};
-BEGIN {
-    $VERSION = '1.17';
-    @ISA     = 'Crypt::DSA::Key';
-}
+use Crypt::DSA::GMP::Key;
 
 sub deserialize {
     my $key = shift;

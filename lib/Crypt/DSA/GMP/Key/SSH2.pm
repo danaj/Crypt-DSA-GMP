@@ -1,16 +1,16 @@
-package Crypt::DSA::Key::SSH2;
-
+package Crypt::DSA::GMP::Key::SSH2;
 use strict;
-use MIME::Base64 qw( decode_base64 );
-use Crypt::DSA::Key;
+use warnings;
 
-use vars qw{$VERSION @ISA};
 BEGIN {
-    $VERSION = '1.17';
-    @ISA     = 'Crypt::DSA::Key';
+  $Crypt::DSA::GMP::Key::SSH2::AUTHORITY = 'cpan:DANAJ';
+  $Crypt::DSA::GMP::Key::SSH2::VERSION = '0.01';
 }
 
-use constant PRIVKEY_MAGIC => 0x3f6ff9eb;
+use base qw( Crypt::DSA::GMP::Key );
+
+use MIME::Base64 qw( decode_base64 );
+use Crypt::DSA::GMP::Key;
 
 sub deserialize {
     my $key = shift;
@@ -57,7 +57,7 @@ sub deserialize {
 
     # This all follows ssh-keygen.c: do_convert_private_ssh2_from_blob
     my $magic = $b->get_int32;
-    return unless $magic == PRIVKEY_MAGIC;
+    return unless $magic == 0x3f6ff9eb;   # Private Key MAGIC
 
     my($ignore);
     $ignore = $b->get_int32;
@@ -88,7 +88,7 @@ package BufferWithInt;
 use strict;
 
 use Data::Buffer;
-use Crypt::DSA::Util qw( bin2mp );
+use Crypt::DSA::GMP::Util qw( bin2mp );
 use base qw( Data::Buffer );
 
 sub get_mp_ssh2 {

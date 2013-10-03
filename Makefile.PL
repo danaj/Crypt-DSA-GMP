@@ -20,12 +20,16 @@ WriteMakefile1(
                       'Crypt::Random::Seed'    => 0,
                       'Exporter'               => '5.562',
                       'Carp'                   => 0,
-                      'constant'               => 0,
+                      'base'                   => 0,
                     },
     META_MERGE   => {
                resources => {
                   homepage   => 'https://github.com/danaj/Crypt-DSA-GMP',
                   repository => 'https://github.com/danaj/Crypt-DSA-GMP',
+               },
+               recommends => {
+                  'Convert::PEM'   => 0, # For Crypt::DSA::GMP::Key::PEM
+                  'Convert::ASN1'  => 0, # To serialize/deserialize sigs
                },
              },
 
