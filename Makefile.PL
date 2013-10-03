@@ -1,19 +1,55 @@
-use inc::Module::Install 1.01;
+use ExtUtils::MakeMaker;
 
-all_from      'lib/Crypt/DSA.pm';
-requires      'IPC::Open3'   => 0;
-requires      'File::Spec'   => 0;
-requires      'Digest::SHA'  => 0;
-requires      'MIME::Base64' => 0;
-requires      'File::Which'  => '0.05';
-requires      'Math::BigInt' => '1.78';
-requires      'Data::Random' => '0.05' if win32;
-requires      'Data::Buffer' => '0.01';
-requires      'Math::BigInt::GMP' => '0.15';  # M-R random
-#requires      'Bytes::Random::Secure'  => '0.23', # object->irand
-requires      'Crypt::Random::Seed' => 0;
-#requires      'Math::Prime::Util' => '0.17'; # pluggable irand
-requires      'Math::Prime::Util::GMP' => 0;
-test_requires 'Test::More'   => '0.42';
+WriteMakefile1(
+    NAME         => 'Crypt::DSA::GMP',
+    ABSTRACT     => 'DSA Signatures and Key Generation',
+    VERSION_FROM => 'lib/Crypt/DSA/GMP.pm',
+    LICENSE      => 'perl',
+    AUTHOR       => 'Dana A Jacobsen <dana@acm.org>',
 
-WriteAll;
+    BUILD_REQUIRES=>{
+                      'Test::More'       => '0.45',
+                    },
+    PREREQ_PM    => {
+                      'Digest::SHA'            => '5.22',
+                      'MIME::Base64'           => 0,
+                      'Data::Buffer'           => '0.01',
+                      'Math::BigInt'           => '1.78',  # try
+                      'Math::BigInt::GMP'      => 0,
+                      'Math::Prime::Util::GMP' => '0.15',  # M-R random
+                      'Crypt::Random::Seed'    => 0,
+                      'Exporter'               => '5.562',
+                      'Carp'                   => 0,
+                      'constant'               => 0,
+                    },
+    META_MERGE   => {
+               resources => {
+                  homepage   => 'https://github.com/danaj/Crypt-DSA-GMP',
+                  repository => 'https://github.com/danaj/Crypt-DSA-GMP',
+               },
+             },
+
+    MIN_PERL_VERSION => 5.006002,
+);
+
+sub WriteMakefile1 {   # Cribbed from eumm-upgrade by Alexandr Ciornii
+  my %params = @_;
+  my $eumm_version = $ExtUtils::MakeMaker::VERSION;
+  $eumm_version = eval $eumm_version;
+
+  if ($params{BUILD_REQUIRES} and $eumm_version < 6.5503) {
+      #EUMM 6.5502 has problems with BUILD_REQUIRES
+      $params{PREREQ_PM}={ %{$params{PREREQ_PM} || {}} , %{$params{BUILD_REQUIRES}} };
+      delete $params{BUILD_REQUIRES};
+  }
+  delete $params{CONFIGURE_REQUIRES} if $eumm_version < 6.52;
+  delete $params{MIN_PERL_VERSION} if $eumm_version < 6.48;
+  delete $params{META_MERGE} if $eumm_version < 6.46;
+  delete $params{META_ADD} if $eumm_version < 6.46;
+  delete $params{LICENSE} if $eumm_version < 6.31;
+  delete $params{AUTHOR} if $] < 5.005;
+  delete $params{ABSTRACT_FROM} if $] < 5.005;
+  delete $params{BINARY_LOCATION} if $] < 5.005;
+
+  WriteMakefile(%params);
+}
