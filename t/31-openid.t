@@ -1,28 +1,26 @@
-#!/usr/bin/perl
-
+#!/usr/bin/env perl
 use strict;
-BEGIN {
-	$|  = 1;
-	$^W = 1;
-}
+use warnings;
+
 use Test::More;
+
 BEGIN {
-	eval { require Convert::PEM };
-	if ( $@ ) {
-		Test::More->import( skip_all => 'no Convert::PEM' );
-	}
-	Test::More->import( tests => 11 );
+  if ( eval { require Convert::PEM; 1; } ) {
+    plan tests => 11;
+  } else {
+    plan skip_all => 'Requires Convert::PEM';
+  }
 }
 
-use Crypt::DSA;
-use Crypt::DSA::Key;
-use Crypt::DSA::Signature;
+use Crypt::DSA::GMP;
+use Crypt::DSA::GMP::Key;
+use Crypt::DSA::GMP::Signature;
 use MIME::Base64 qw( decode_base64 );
 
-my $dsa = Crypt::DSA->new;
-ok($dsa, 'Created Crypt::DSA object');
+my $dsa = Crypt::DSA::GMP->new;
+ok($dsa, 'Created Crypt::DSA::GMP object');
 
-my $key = Crypt::DSA::Key->new( Content => <<KEY, Type => 'PEM' );
+my $key = Crypt::DSA::GMP::Key->new( Content => <<KEY, Type => 'PEM' );
 -----BEGIN PUBLIC KEY-----
 MIIBtjCCASsGByqGSM44BAEwggEeAoGBANuhjw/GIilXNuvnf9q3ygn1XSzzRtql
 3BpsWSRVwXA05G/d9pEBIH35ADEQ6F035f88OfuZYRlUZt6Zx5q4ReA4KXWdAIaA
@@ -42,11 +40,11 @@ is($key->q, '1343697875228530311433268893561874972460542007893', 'key->q is corr
 is($key->g, '76598656157914156355445502802171744250790923020496826978794359991033889852609480204530610320512647835268415654125612029198553017695138923633498269111081903879790210175626113174087754456086288166221445477869449670179905166479288765706711432697526089711402534333490590610585702443148717225877410516254148283870', 'key->g is correct');
 is($key->pub_key, '14037256439480519253759632613632536532035918183115524804324868617973702093495192051592043879822732169784787073950081465739236860442657409768654772398273593073530490949064562392146096658305955159316750434379546653490951198708160960858856890405112535972154363576715166835110527233547140212180830244851727625685', 'key->pub_key is correct');
 
-my $sig = Crypt::DSA::Signature->new( Content => decode_base64(<<SIG) );
+my $sig = Crypt::DSA::GMP::Signature->new( Content => decode_base64(<<SIG) );
 MC0CFFhuYaDO5FWvAoq+1vfNXwo+vaegAhUAvOszrDsJmvNyacuyzEuch3Q9w2k=
 SIG
 ok($sig, 'Parsed raw ASN.1 signature');
-$sig = Crypt::DSA::Signature->new( Content => <<SIG );
+$sig = Crypt::DSA::GMP::Signature->new( Content => <<SIG );
 MC0CFFhuYaDO5FWvAoq+1vfNXwo+vaegAhUAvOszrDsJmvNyacuyzEuch3Q9w2k=
 SIG
 ok($sig, 'Parsed base64-encoded signature');

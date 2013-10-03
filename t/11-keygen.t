@@ -1,25 +1,22 @@
-#!/usr/bin/perl
-
+#!/usr/bin/env perl
 use strict;
-BEGIN {
-	$|  = 1;
-	$^W = 1;
-}
+use warnings;
+
 use Test::More;
-use Math::BigInt try => 'GMP, Pari';
+use Crypt::DSA::GMP;
+use Crypt::DSA::GMP::Util qw( mod_exp );
 
 BEGIN {
-	if ( not $INC{'Math/BigInt/GMP.pm'} and not $INC{'Math/BigInt/Pari.pm'} ) {
-		plan( skip_all => 'Test is excessively slow without GMP or Pari' );
-	} else {
-		plan( tests => 18 );
-	}
+  if ( not     $INC{'Math/BigInt/GMP.pm'}
+       and not $INC{'Math/BigInt/Pari.pm'} ) {
+    plan( skip_all => 'Test is excessively slow without GMP or Pari' );
+  } else {
+    plan( tests => 18 );
+  }
 }
 
-use Crypt::DSA;
-use Crypt::DSA::Util qw( mod_exp );
 
-my $dsa = Crypt::DSA->new;
+my $dsa = Crypt::DSA::GMP->new;
 my $two = Math::BigInt->new(2);
 for my $bits (qw( 512 768 1024 )) {
 	my $key = $dsa->keygen( Size => $bits );

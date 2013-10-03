@@ -1,0 +1,2 @@
+- Use something like Module::Load in Key read/write instead of the string
+  eval stuff.

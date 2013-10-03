@@ -1,31 +1,24 @@
-#!/usr/bin/perl
-
+#!/usr/bin/env perl
 use strict;
-BEGIN {
-	$|  = 1;
-	$^W = 1;
-}
+use warnings;
+
 use Test::More;
 
 BEGIN {
-	eval { require Crypt::DES_EDE3 };
-	if ( $@ ) {
-		Test::More->import( skip_all => 'no Crypt::DES_EDE3' );
-	}
-	eval { require Convert::PEM };
-	if ( $@ ) {
-		Test::More->import( skip_all => 'no Convert::PEM' );
-	}
-	Test::More->import( tests => 26 );
+  if ( eval { require Convert::PEM; 1; } ) {
+    plan tests => 26;
+  } else {
+    plan skip_all => 'Requires Convert::PEM';
+  }
 }
 
-use Crypt::DSA;
-use Crypt::DSA::Key;
-use Crypt::DSA::Signature;
+use Crypt::DSA::GMP;
+use Crypt::DSA::GMP::Key;
+use Crypt::DSA::GMP::Signature;
 
 my $keyfile = "./dsa-key.pem";
 
-my $dsa = Crypt::DSA->new;
+my $dsa = Crypt::DSA::GMP->new;
 my $key = $dsa->keygen( Size => 512 );
 
 ## Serialize a signature.
@@ -33,16 +26,16 @@ my $sig = $dsa->sign(
 	Message => 'foo',
 	Key     => $key,
 );
-ok($sig, 'Signature created correctly using Crypt::DSA->sign');
+ok($sig, 'Signature created correctly using Crypt::DSA::GMP->sign');
 my $buf = $sig->serialize;
 ok($buf, 'Signature serialized correctly');
-my $sig2 = Crypt::DSA::Signature->new( Content => $buf );
-ok($sig2, 'Signature created correctly using Crypt::DSA::Signature');
+my $sig2 = Crypt::DSA::GMP::Signature->new( Content => $buf );
+ok($sig2, 'Signature created correctly using Crypt::DSA::GMP::Signature');
 is($sig2->r, $sig->r, '->r of both signatures is identical');
 is($sig2->s, $sig->s, '->s of both signatures is identical');
 
 ok($key->write( Type => 'PEM', Filename => $keyfile), 'Writing key works.');
-my $key2 = Crypt::DSA::Key->new( Type => 'PEM', Filename => $keyfile );
+my $key2 = Crypt::DSA::GMP::Key->new( Type => 'PEM', Filename => $keyfile );
 ok($key2, 'Load key using Crypt::DSA::key');
 is($key->p, $key2->p, '->p of both keys is identical');
 is($key->q, $key2->q, '->q of both keys is identical');
@@ -51,7 +44,7 @@ is($key->pub_key, $key2->pub_key, '->pub_key of both keys is identical');
 is($key->priv_key, $key2->priv_key, '->priv_key of both keys is identical');
 
 ok($key->write( Type => 'PEM', Filename => $keyfile, Password => 'foo'), 'Writing keyfile with password works');
-$key2 = Crypt::DSA::Key->new( Type => 'PEM', Filename => $keyfile, Password => 'foo' );
+$key2 = Crypt::DSA::GMP::Key->new( Type => 'PEM', Filename => $keyfile, Password => 'foo' );
 ok($key2, 'Reading keyfile with password works');
 is($key->p, $key2->p, '->p of both keys is identical');
 is($key->q, $key2->q, '->q of both keys is identical');
@@ -64,7 +57,7 @@ is($key->priv_key, $key2->priv_key, '->priv_key of both keys is identical');
 ## it.
 $key->priv_key(undef);
 ok($key->write( Type => 'PEM', Filename => $keyfile), 'Writing keyfile without private key works');
-$key2 = Crypt::DSA::Key->new( Type => 'PEM', Filename => $keyfile );
+$key2 = Crypt::DSA::GMP::Key->new( Type => 'PEM', Filename => $keyfile );
 ok($key2, 'Reading keyfile without private key works');
 is($key->p, $key2->p, '->p of both keys is identical');
 is($key->q, $key2->q, '->q of both keys is identical');

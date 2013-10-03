@@ -13,8 +13,7 @@ use Crypt::DSA::GMP::Util qw( bitsize );
 
 
 sub new {
-    my $class = shift;
-    my %param = @_;
+    my ($class, %param) = @_;
     my $key = bless { }, $class;
 
     if ($param{Filename} || $param{Content}) {
@@ -29,7 +28,7 @@ sub new {
 sub size { bitsize($_[0]->p) }
 
 BEGIN {
-    no strict 'refs';
+    no strict 'refs';  ## no critic (ProhibitNoStrict)
     for my $meth (qw( p q g pub_key priv_key r kinv )) {
         # Values are stored as Math::BigInt objects
         *$meth = sub {
@@ -52,26 +51,23 @@ BEGIN {
 }
 
 sub read {
-    my $key = shift;
-    my %param = @_;
+    my ($key, %param) = @_;
     my $type = $param{Type} or croak "read: Need a key file 'Type'";
     my $class = join '::', __PACKAGE__, $type;
     eval "use $class;";
     croak "Invalid key file type '$type': $@" if $@;
     bless $key, $class;
-    local *FH;
     if (my $fname = delete $param{Filename}) {
-        open FH, $fname or return;
-        my $blob = do { local $/; <FH> };
-        close FH;
+        open(my $fh, "<", $fname) or return;
+        my $blob = do { local $/; <$fh> };
+        close $fh or return;
         $param{Content} = $blob;
     }
     $key->deserialize(%param);
 }
 
 sub write {
-    my $key = shift;
-    my %param = @_;
+    my ($key, %param) = @_;
     my $type;
     unless ($type = $param{Type}) {
         my $pkg = __PACKAGE__;
@@ -84,10 +80,9 @@ sub write {
     bless $key, $class;
     my $blob = $key->serialize(%param);
     if (my $fname = delete $param{Filename}) {
-        local *FH;
-        open FH, ">$fname" or croak "Can't open $fname: $!";
-        print FH $blob;
-        close FH;
+        open(my $fh, ">", $fname) or croak "Can't open $fname: $!";
+        print $fh $blob;
+        close $fh or croak "Can't close $fname: $!";
     }
     $blob;
 }
@@ -133,7 +128,7 @@ the I<Type> parameter (mandatory if I<Filename> is provided),
 be aware that your key will actually be blessed into a subclass
 of I<Crypt::DSA::Key>. Specifically, it will be the class
 implementing the specific read functionality for that type,
-eg. I<Crypt::DSA::Key::PEM>.
+e.g. I<Crypt::DSA::Key::PEM>.
 
 Returns the key on success, C<undef> otherwise. (See I<Password>
 for one reason why I<new> might return C<undef>).
@@ -151,7 +146,7 @@ PEM files comes from I<Convert::PEM>; if you don't have this
 module installed, the I<new> method will die.
 
 This argument is mandatory, I<if> you're either reading the file from
-disk (ie. you provide a I<Filename> argument) or you've specified the
+disk (i.e. you provide a I<Filename> argument) or you've specified the
 I<Content> argument.
 
 =item * Filename
@@ -196,7 +191,7 @@ The type of file format that you wish to write. I<PEM> is one
 example (in fact, currently, it's the only example).
 
 This argument is mandatory, I<unless> your I<$key> object is
-already blessed into a subclass (eg. I<Crypt::DSA::Key::PEM>),
+already blessed into a subclass (e.g. I<Crypt::DSA::Key::PEM>),
 and you wish to write the file using the same subclass.
 
 =item * Filename
@@ -219,7 +214,6 @@ number of bits in the large prime I<p>.
 
 =head1 AUTHOR & COPYRIGHTS
 
-Please see the Crypt::DSA manpage for author, copyright,
-and license information.
+See L<Crypt::DSA::GMP> for author, copyright, and license information.
 
 =cut

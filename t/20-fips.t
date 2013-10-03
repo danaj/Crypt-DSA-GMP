@@ -1,47 +1,42 @@
-#!/usr/bin/perl
-
+#!/usr/bin/env perl
 use strict;
-BEGIN {
-	$|  = 1;
-	$^W = 1;
-}
+use warnings;
+
 use Test::More;
-use Crypt::DSA;
-use Crypt::DSA::KeyChain;
+use Crypt::DSA::GMP;
+use Crypt::DSA::GMP::KeyChain;
 
-plan( tests => 9 );
+plan tests => 9;
 
-## Test with data from fips 186 (appendix 5) doc (using SHA1
-## instead of SHA digests).
-my @seed_hex   = "d5014e4b60ef2ba8b6211b4062ba3224e0427dd3" =~ /(..)/g;
-my $start_seed = join '', map chr hex, @seed_hex;
-my $expected_p = "7434410770759874867539421675728577177024889699586189000788950934679315164676852047058354758883833299702695428196962057871264685291775577130504050839126673";
-my $expected_q = "1138656671590261728308283492178581223478058193247";
-my $expected_g = "5154978420348751798752390524304908179080782918903280816528537868887210221705817467399501053627846983235883800157945206652168013881208773209963452245182466";
+# FIPS 186-2 Appendix 5 test vector for DSA (L=512, N=160) and SHA-1.
+my $start_seed = pack("H*", "d5014e4b60ef2ba8b6211b4062ba3224e0427dd3");
+my $expected_p = Math::BigInt->from_hex("8df2a494492276aa3d25759bb06869cbeac0d83afb8d0cf7cbb8324f0d7882e5d0762fc5b7210eafc2e9adac32ab7aac49693dfbf83724c2ec0736ee31c80291");
+my $expected_q = Math::BigInt->from_hex("c773218c737ec8ee993b4f2ded30f48edace915f");
+my $expected_g = Math::BigInt->from_hex("626d027839ea0a13413163a55b4cb500299d5522956cefcb3bff10f399ce2c2e71cb9de5fa24babf58e5b79521925c9cc42e9f6f464b088cc572af53e6d78802");
 
 ## We'll need this later to sign and verify.
-my $dsa = Crypt::DSA->new;
-ok($dsa, 'Crypt::DSA->new worked');
+my $dsa = Crypt::DSA::GMP->new;
+ok($dsa, 'Crypt::DSA::GMP->new worked');
 
 ## Create a keychain to generate our keys. Generally you
 ## don't need to be this explicit (just call keygen), but if
 ## you want the extra state data (counter, h, seed) you need
 ## to use the actual methods themselves.
-my $keychain = Crypt::DSA::KeyChain->new;
-ok($keychain, 'Crypt::DSA::KeyChain->new worked');
+my $keychain = Crypt::DSA::GMP::KeyChain->new;
+ok($keychain, 'Crypt::DSA::GMP::KeyChain->new worked');
 
 ## generate_params builds p, q, and g.
 my($key, $counter, $h, $seed) = $keychain->generate_params(
 	Size => 512,
 	Seed => $start_seed,
 );
-is("@{[ $key->p ]}", $expected_p, '->p returns expected value');
-is("@{[ $key->q ]}", $expected_q, '->q returns expected value');
-is("@{[ $key->g ]}", $expected_g, '->g returns expected value');
+is($key->p, $expected_p, '->p returns expected value');
+is($key->q, $expected_q, '->q returns expected value');
+is($key->g, $expected_g, '->g returns expected value');
 
-## Explanation: p should have been found when the counter was at
-## 105; g should have been found when h was 2; and g should have
-## been discovered directly from the start seed.
+# Counter = 105 (page 23)
+# h = 2 (page 23)
+# We should have found q with the start seed.
 is($counter, 105, 'Consistency check 1');
 is($h, 2, 'Consistency check 2');
 is($seed, $start_seed, 'Consistency check 3');
@@ -54,3 +49,4 @@ my $str1 = "12345678901234567890";
 ## Test key generation by signing and verifying a message.
 my $sig = $dsa->sign(Message => $str1, Key => $key);
 ok($dsa->verify(Message => $str1, Key => $key, Signature => $sig), 'Signing and verifying ok');
+

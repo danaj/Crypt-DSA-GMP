@@ -10,17 +10,16 @@ BEGIN {
 use Carp qw( croak );
 
 sub new {
-    my $class = shift;
-    my %param = @_;
+    my ($class, %param) = @_;
     my $sig = bless { }, $class;
     if ($param{Content}) {
         return $sig->deserialize(%param);
     }
-    $sig;
+    return $sig;
 }
 
 BEGIN {
-    no strict 'refs';
+    no strict 'refs';  ## no critic (ProhibitNoStrict)
     for my $meth (qw( r s )) {
         # Values are stored as Math::BigInt objects
         *$meth = sub {
@@ -60,7 +59,8 @@ sub deserialize {
     local $^W = 0;
     for ($param{Content}, MIME::Base64::decode_base64($param{Content})) {
         my $out = $asn->decode($_);
-        $ref = $out, last if $out;
+        $ref = $out;
+        last if $out;
     }
     croak "Invalid Content" unless $ref;
     $sig->s($ref->{s});
@@ -79,6 +79,8 @@ sub serialize {
 
 1;
 __END__
+
+=for stopwords deserialize
 
 =head1 NAME
 
@@ -117,21 +119,26 @@ this looks like:
         s INTEGER
     }
 
-If I<Content> is provided, I<new> will automatically call the I<deserialize>
+If I<Content> is provided, I<new> will automatically call the L</deserialize>
 method to parse the content, and set the I<r> and I<s> methods on the
 resulting I<Crypt::DSA::Signature> object.
 
 =back
 
-=head2 $sig->serialize
+=head1 METHODS
+
+=head2 serialize
 
 Serializes the signature object I<$sig> into the format described above:
 an ASN.1-encoded representation of the signature, using the ASN.1 syntax
 above.
 
+=head2 deserialize
+
+Deserializes the ASN.1-encoded representation into a signature object.
+
 =head1 AUTHOR & COPYRIGHTS
 
-Please see the Crypt::DSA manpage for author, copyright,
-and license information.
+See L<Crypt::DSA::GMP> for author, copyright, and license information.
 
 =cut

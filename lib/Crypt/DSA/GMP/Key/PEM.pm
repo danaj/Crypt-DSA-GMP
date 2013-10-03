@@ -174,7 +174,6 @@ Read the I<Crypt::DSA::Key> documentation for more details.
 
 =head1 AUTHOR & COPYRIGHTS
 
-Please see the Crypt::DSA manpage for author, copyright,
-and license information.
+See L<Crypt::DSA::GMP> for author, copyright, and license information.
 
 =cut

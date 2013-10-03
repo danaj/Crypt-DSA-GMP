@@ -16,13 +16,12 @@ use Crypt::DSA::GMP::Key;
 use Crypt::DSA::GMP::Util qw( bin2mp bitsize mod_exp makerandom randombytes );
 
 sub new {
-    my $class = shift;
-    bless { @_ }, $class;
+    my ($class, @params) = @_;
+    return bless { @params }, $class;
 }
 
 sub generate_params {
-    my $keygen = shift;
-    my %param  = @_;
+    my ($keygen, %param) = @_;
     my $bits   = int($param{Size});
     my $v      = $param{Verbosity};
     my $proveq = $param{Prove} && $param{Prove} !~ /^p$/i;
@@ -171,7 +170,7 @@ sub generate_params {
     } while $g == 1;
     print STDERR "\n" if $v;
 
-    my $key = Crypt::DSA::::GMP::Key->new;
+    my $key = Crypt::DSA::GMP::Key->new;
     $key->p($p);
     $key->q($q);
     $key->g($g);
@@ -197,7 +196,7 @@ sub _seed_plus_one {
         vec($s, $i, 8)++;
         last unless vec($s, $i, 8) == 0;
     }
-    $s;
+    return $s;
 }
 
 1;
@@ -325,7 +324,6 @@ a I<Crypt::DSA::Key> object.
 
 =head1 AUTHOR & COPYRIGHT
 
-Please see the L<Crypt::DSA> manpage for author, copyright,
-and license information.
+See L<Crypt::DSA::GMP> for author, copyright, and license information.
 
 =cut

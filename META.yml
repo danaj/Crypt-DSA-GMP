@@ -1,0 +1,38 @@
+---
+abstract: 'DSA Signatures and Key Generation'
+author:
+  - 'Dana A Jacobsen <dana@acm.org>'
+build_requires:
+  Test::More: 0.45
+configure_requires:
+  ExtUtils::MakeMaker: 0
+dynamic_config: 0
+generated_by: 'ExtUtils::MakeMaker version 6.68, CPAN::Meta::Converter version 2.131560'
+license: perl
+meta-spec:
+  url: http://module-build.sourceforge.net/META-spec-v1.4.html
+  version: 1.4
+name: Crypt-DSA-GMP
+no_index:
+  directory:
+    - t
+    - inc
+recommends:
+  Convert::ASN1: 0
+  Convert::PEM: 0
+requires:
+  Carp: 0
+  Crypt::Random::Seed: 0
+  Data::Buffer: 0.01
+  Digest::SHA: 5.22
+  Exporter: 5.562
+  MIME::Base64: 0
+  Math::BigInt: 1.78
+  Math::BigInt::GMP: 0
+  Math::Prime::Util::GMP: 0.15
+  base: 0
+  perl: 5.006002
+resources:
+  homepage: https://github.com/danaj/Crypt-DSA-GMP
+  repository: https://github.com/danaj/Crypt-DSA-GMP
+version: 0.01

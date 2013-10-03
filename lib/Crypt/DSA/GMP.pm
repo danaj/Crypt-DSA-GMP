@@ -39,7 +39,7 @@ sub sign {
         croak __PACKAGE__, "->sign: Need either Message or Digest"
             unless $param{Message};
         # Determine which standard we're following.
-        $param{Standard} = $dsa->{Standard} 
+        $param{Standard} = $dsa->{Standard}
           if defined $dsa->{Standard} && !defined $param{Standard};
         if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
           # TODO: SP 800-57 rev 3 indicates we need to look at bitsize(q)
@@ -94,7 +94,7 @@ sub verify {
         croak __PACKAGE__, "->verify: Need either Message or Digest"
             unless $param{Message};
         # Determine which standard we're following.
-        $param{Standard} = $dsa->{Standard} 
+        $param{Standard} = $dsa->{Standard}
           if defined $dsa->{Standard} && !defined $param{Standard};
         if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
           $dgst = sha256($param{Message});

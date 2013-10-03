@@ -65,7 +65,8 @@ sub mod_inverse {
 {
   my $crs_source = undef;
   sub randombytes {
-    $crs_source = Crypt::Random::Seed->new() unless defined $crs_source;
+    $crs_source = Crypt::Random::Seed->new(NonBlocking=>1)
+      unless defined $crs_source;
     return $crs_source->random_bytes(@_);
   }
 }
@@ -87,48 +88,42 @@ __END__
 
 =head1 NAME
 
-Crypt::DSA::Util - DSA Utility functions
+Crypt::DSA::GMP::Util - DSA Utility functions
 
 =head1 SYNOPSIS
 
-    use Crypt::DSA::Util qw( func1 func2 ... );
+    use Crypt::DSA::GMP::Util qw( func1 func2 ... );
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::Util> contains a set of exportable utility functions
-used through the I<Crypt::DSA> set of libraries.
+I<Crypt::DSA::GMP::Util> contains a set of exportable utility functions
+used through the I<Crypt::DSA::GMP> set of libraries.
 
 =head2 bitsize($n)
 
-Returns the number of bits in the I<Math::Pari> integer object
-I<$n>.
+Returns the number of bits in the integer I<$n>.
 
 =head2 bin2mp($string)
 
 Given a string I<$string> of any length, treats the string as a
-base-256 representation of an integer, and returns that integer,
-a I<Math::Pari> object.
+base-256 representation of an integer, and returns that integer
 
 =head2 mp2bin($int)
 
-Given a biginteger I<$int> (a I<Math::Pari> object), linearizes
+Given an integer I<$int> (maybe a L<Math::BigInt> object), linearizes
 the integer into an octet string, and returns the octet string.
 
 =head2 mod_exp($a, $exp, $n)
 
-Computes $a ^ $exp mod $n and returns the value. The calculations
-are done using I<Math::Pari>, and the return value is a I<Math::Pari>
-object.
+Computes $a ^ $exp mod $n and returns the value.
 
 =head2 mod_inverse($a, $n)
 
 Computes the multiplicative inverse of $a mod $n and returns the
-value. The calculations are done using I<Math::Pari>, and the
-return value is a I<Math::Pari> object.
+value.
 
 =head1 AUTHOR & COPYRIGHTS
 
-Please see the Crypt::DSA manpage for author, copyright,
-and license information.
+See L<Crypt::DSA::GMP> for author, copyright, and license information.
 
 =cut

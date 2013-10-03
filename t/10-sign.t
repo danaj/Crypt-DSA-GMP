@@ -27,7 +27,7 @@ my $verified = $dsa->verify(
 	Message   => $message,
 	Signature => $sig,
 );
-ok($dsa, 'Crypt::DSA->new ok');
+ok($dsa, 'Crypt::DSA::GMP->new ok');
 ok($key, 'Generated key correctly');
 ok($sig, 'generated signature correctly');
 ok($verified, 'verified signature correctly');

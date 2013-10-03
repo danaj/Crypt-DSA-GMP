@@ -150,7 +150,6 @@ So we will need Convert::ASN1 to handle this.
 
 =head1 AUTHOR & COPYRIGHTS
 
-Please see the Crypt::DSA manpage for author, copyright,
-and license information.
+See L<Crypt::DSA::GMP> for author, copyright, and license information.
 
 =cut
