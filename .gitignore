@@ -4,3 +4,4 @@ Makefile.old
 MYMETA.*
 blib*
 pm_to_blib
+.travis.yml
