@@ -385,7 +385,7 @@ is a shorter way of writing
 
 =head2 $verified = $dsa->verify(%arg)
 
-Verifies a signature generated with I<sign>. Returns a true
+Verifies a signature generated with L</sign>. Returns a true
 value on success and false on failure.
 
 I<%arg> can contain:
@@ -416,7 +416,7 @@ This argument is required.
 =item * Signature
 
 The signature itself. Should be in the same format as returned
-from I<sign>, a I<Crypt::DSA::GMP::Signature> object.
+from L</sign>, a L<Crypt::DSA::GMP::Signature> object.
 
 This argument is required.
 
@@ -454,7 +454,8 @@ almost entirely his code.
 
 =head1 COPYRIGHT
 
-Copyright 2013 by Dana Jacobsen E<lt>dana@acm.orgE<gt>
+Copyright 2013 by Dana Jacobsen E<lt>dana@acm.orgE<gt>.
+Portions Copyright 2006-2011 by Benjamin Trott.
 
 This program is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.

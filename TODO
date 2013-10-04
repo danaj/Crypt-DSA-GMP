@@ -3,7 +3,7 @@
 
 - Finish going over documentation.
 
-- Create a test for non-public SSH2 format
+- Create a test for non-public SSH2 format.  We may have to roll our own.
 
 - Implement SSH2 serialize.
 
@@ -21,3 +21,7 @@
 - Make a CryptX Crypt::PK::DSA interop test.
 
 - Test with Net::SSH::Perl (i.e. can we plug it in and have it work).
+
+- Test encrypted key files?
+
+- Test DER format (PEM without the wrappers).
