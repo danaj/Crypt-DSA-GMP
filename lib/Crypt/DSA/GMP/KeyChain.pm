@@ -10,7 +10,7 @@ BEGIN {
 use Carp qw( croak );
 use Math::BigInt lib => "GMP";
 use Math::Prime::Util::GMP qw/is_prob_prime is_provable_prime miller_rabin_random/;
-use Digest::SHA qw( sha1 sha1_hex);
+use Digest::SHA qw( sha1 sha1_hex sha256_hex);
 
 use Crypt::DSA::GMP::Key;
 use Crypt::DSA::GMP::Util qw( bin2mp bitsize mod_exp makerandomrange randombytes );
@@ -31,7 +31,7 @@ sub generate_params {
       unless $bits >= 256;
 
     # OpenSSL was removed:
-    #   1. It was a portability issue.
+    #   1. It was a portability issue (7 RTs related to it).
     #   2. It removes module dependencies.
     #   2. Security issues with running a program in the path without
     #      verifying it is the correct executable.
@@ -52,7 +52,13 @@ sub generate_params {
                  ? 'FIPS 186-4'
                  : 'FIPS 186-2';
 
-    my($counter, $q, $p, $seed, $seedp1);
+    # $mrseed is just a random number we give to the primality test to give us
+    # a unique sequence of bases.  It's not that important other than (1) we
+    # don't want the same sequence each call, (2) we don't want to leak any
+    # information about our state, and (3) we don't want to spend too much
+    # time/entropy on it.  A truncated hash of our seed should work well.
+
+    my($counter, $q, $p, $seed, $seedp1, $mrseed);
 
     if ($standard eq 'FIPS 186-2') {
 
@@ -76,9 +82,10 @@ sub generate_params {
           vec($md, 0, 8) |= 0x80;
           vec($md, 19, 8) |= 0x01;
           $q = bin2mp($md);
+          $mrseed = '0x'.substr(sha256_hex($seed),0,16) unless defined $mrseed;
           last if ( $proveq && is_provable_prime($q))
                || (!$proveq && is_prob_prime($q)
-                            && miller_rabin_random($q, 19, "0x$seedp1"));
+                            && miller_rabin_random($q, 19, $mrseed));
         }
         print STDERR "*\n" if $v;
 
@@ -98,15 +105,15 @@ sub generate_params {
           if ($p >= $p_test) {
             last if ( $provep && is_provable_prime($p))
                  || (!$provep && is_prob_prime($p)
-                              && miller_rabin_random($p, 3, "0x$seedp1"));
+                              && miller_rabin_random($p, 3, $mrseed));
           }
           $counter++;
         }
       } while ($counter >= 4096);
 
-                # ^^^^^^^^^^   FIPS 186-2   ^^^^^^^^^^ #
+                # /\ /\ /\ /\   FIPS 186-2   /\ /\ /\ /\ #
     } else {
-                # ˇˇˇˇˇˇˇˇˇˇ   FIPS 186-4   ˇˇˇˇˇˇˇˇˇˇ #
+                # \/ \/ \/ \/   FIPS 186-4   \/ \/ \/ \/ #
 
       my $L = $bits;
       my $N = (defined $param{QSize}) ? $param{QSize}
@@ -134,15 +141,15 @@ sub generate_params {
         ## Generate q
         while (1) {
           print STDERR "." if $v;
-          $seed = randombytes($seedlen);
           $seed = (defined $param{Seed}) ? delete $param{Seed}
                                          : randombytes($seedlen);
           my $digest = $sha->reset->add($seed)->hexdigest;
           my $U = Math::BigInt->from_hex($digest)->bmod($q_test);
           $q = $q_test + $U + 1 - $U->is_odd();
+          $mrseed = '0x'.substr(sha256_hex($seed),0,16) unless defined $mrseed;
           last if ( $proveq && is_provable_prime($q))
                || (!$proveq && is_prob_prime($q)
-                            && miller_rabin_random($q, $nqtests, "0x$seed"));
+                            && miller_rabin_random($q, $nqtests, $mrseed));
         }
         print STDERR "*\n" if $v;
         $seedp1 = $seed;
@@ -163,7 +170,7 @@ sub generate_params {
           if ($p >= $p_test) {
             last if ( $provep && is_provable_prime($p))
                  || (!$provep && is_prob_prime($p)
-                              && miller_rabin_random($p,$nptests, "0x$seedp1"));
+                              && miller_rabin_random($p, $nptests, $mrseed));
           }
           $counter++;
         }

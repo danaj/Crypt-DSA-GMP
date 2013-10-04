@@ -23,18 +23,20 @@ Revision history for Perl extension Crypt-DSA-GMP
       RT 88158 primality testing              [fixed]
       RT 88429 key generation issues          [fixed]
       RT 71421 Systems without /dev/random... [using Crypt::Random::Seed]
+      RT 19477 $key->write not writing public [use Convert::PEM 0.07]
 
     The following RTs are still open:
 
-      RT 19477 $key->write should know whether to write public or private
       RT 26926 should Convert::PEM be a full dependency?
+               Absolutely not until RT 27574 is fixed.
 
     The following RTs should be closed:
 
       RT 27144 Signature will croak during decode_base64.
                Perhaps old MIME::Base64?  This is not the current behavior.
       RT 54485 SSH2 format.  ssh-keygen writes a PEM file for private key.
-      RT 72371 CPAN install missing Math::Pari.  What?  This isn't required.
+      RT 72371 CPAN install missing Math::Pari.
+               What in the world would cause this?  Nothing in this module.
 
     Note that 71421 and 21968 are somewhat conflicting.  This will be
     dealt with soon.

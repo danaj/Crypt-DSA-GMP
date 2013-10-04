@@ -9,4 +9,10 @@
 
 - Implement SSH2 serialize.
 
-- Run through RTs.
+- makerandomrange -- see FIPS 186-4 appendix B for approved methods.
+  - KeyChain/generate_keys is using B.1.2, assuming mrr is steps 4/5/6
+  - GMP/sign is using B.2.2, assuming mrr is steps 4/5/6
+  - mrr does the trick of getting 8-15 extra bits and looping until we fit
+    inside a modulo boundary.  This gives us the no-bias behaviour of the
+    x.2 method with the smaller entropy use of the x.1 method.  We need
+    another poke through the logic.
