@@ -5,8 +5,6 @@
 
 - Create a test for non-public SSH2 format
 
-- Compare with CryptX, make an interop xt test
-
 - Implement SSH2 serialize.
 
 - makerandomrange -- see FIPS 186-4 appendix B for approved methods.
@@ -16,3 +14,10 @@
     inside a modulo boundary.  This gives us the no-bias behaviour of the
     x.2 method with the smaller entropy use of the x.1 method.  We need
     another poke through the logic.
+
+- Make sign/verify do a key validation check
+  (e.g. primality of p,q, range checks)
+
+- Make a CryptX Crypt::PK::DSA interop test.
+
+- Test with Net::SSH::Perl (i.e. can we plug it in and have it work).

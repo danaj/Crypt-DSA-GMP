@@ -29,6 +29,22 @@ sub keygen {
     $dsa->{_keychain}->generate_keys($key);
     $key;
 }
+sub keyset {
+  my ($dsa, %param) = @_;
+  my $key = Crypt::DSA::GMP::Key->new;
+  croak "Key missing p" unless defined $param{p};  $key->p($param{p});
+  croak "Key missing q" unless defined $param{q};  $key->q($param{q});
+  croak "Key missing g" unless defined $param{g};  $key->g($param{g});
+  $key->priv_key($param{priv_key}) if defined $param{priv_key};
+  $key->priv_key($param{x}       ) if defined $param{x};
+  $key->pub_key($param{pub_key}) if defined $param{pub_key};
+  $key->pub_key($param{y}      ) if defined $param{y};
+  $key->pub_key(mod_exp($key->g, $key->priv_key, $key->p))
+    if !defined $key->pub_key && defined $key->priv_key;
+  croak "Key missing both private and public keys"
+    unless defined $key->pub_key || defined $key->priv_key;
+  $key;
+}
 
 sub sign {
     my ($dsa, %param) = @_;
@@ -295,6 +311,15 @@ The default is 0, which means the standard FIPS 186-4 probable
 prime tests are done.
 
 =back
+
+
+=head2 $key = $dsa->keyset(%arg)
+
+Creates a key with given elements, typically read from another
+source or via another module.  I<p>, I<q>, and I<g> are all
+required.  One or both of I<priv_key> and I<pub_key> are
+required.  I<pub_key> will be constructed if it is not supplied
+but I<priv_key> is not.
 
 
 =head2 $signature = $dsa->sign(%arg)

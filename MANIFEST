@@ -21,6 +21,8 @@ t/30-pem.t
 t/31-openid.t
 t/32-pem-large.t
 t/33-ssh2.t
+t/40-interop-openssl.t
+t/41-interop-cryptdsa.t
 t/90-release-perlcritic.t
 t/91-release-pod-syntax.t
 t/92-release-pod-coverage.t
