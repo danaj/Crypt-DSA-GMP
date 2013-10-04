@@ -22,22 +22,28 @@ sub new {
 
 sub generate_params {
     my ($keygen, %param) = @_;
+    croak "Size parameter missing" unless defined $param{Size};
     my $bits   = int($param{Size});
     my $v      = $param{Verbosity};
     my $proveq = $param{Prove} && $param{Prove} !~ /^p$/i;
     my $provep = $param{Prove} && $param{Prove} !~ /^q$/i;
-    croak "Number of bits (Size => $bits) is too small" unless $bits >= 256;
+    croak "Number of bits (Size => $bits) is too small (min 256)"
+      unless $bits >= 256;
 
-    # OpenSSL was removed to avoid portability concerns.  With the redone
-    # code below plus Math::Prime::Util::GMP for primality testing, we're
-    # actually faster for larger bit sizes, plus we know we're following the
-    # standard we want and don't get unknown behavior.
+    # OpenSSL was removed:
+    #   1. It was a portability issue.
+    #   2. It removes module dependencies.
+    #   2. Security issues with running a program in the path without
+    #      verifying it is the correct executable.
+    #   3. We know the code here follows FIPS 186-4.  OpenSSL does not.
+    #   4. The behavior of OpenSSL has changed across different versions.
+    #   5. This code is faster for key sizes larger than 1024 bits.
 
     # Time for key generations (without proofs, average of 1000)
-    #  512-bit     74ms Perl      29ms OpenSSL
-    #  768-bit    108ms Perl      69ms OpenSSL
-    # 1024-bit    154ms Perl     144ms OpenSSL
-    # 2048-bit    832ms Perl   1,144ms OpenSSL
+    #  512-bit     47ms Perl      25ms OpenSSL
+    #  768-bit     78ms Perl      69ms OpenSSL
+    # 1024-bit    139ms Perl     144ms OpenSSL
+    # 2048-bit    783ms Perl   1,144ms OpenSSL
     # 4096-bit  7,269ms Perl  12,888ms OpenSSL
 
     $param{Standard} = $keygen->{Standard}
@@ -98,22 +104,19 @@ sub generate_params {
         }
       } while ($counter >= 4096);
 
-                # ▲▲▲▲▲ FIPS 186-2 ▲▲▲▲▲
+                # ^^^^^^^^^^   FIPS 186-2   ^^^^^^^^^^ #
     } else {
-                # ▼▼▼▼▼ FIPS 186-4 ▼▼▼▼▼
+                # ˇˇˇˇˇˇˇˇˇˇ   FIPS 186-4   ˇˇˇˇˇˇˇˇˇˇ #
 
       my $L = $bits;
       my $N = (defined $param{QSize}) ? $param{QSize}
                                       : ($bits >= 2048) ? 256 : 160;
       croak "Invalid Q size, must be between 1 and 512" if $N < 1 || $N > 512;
       croak "Invalid Q size, must be >= Size+8" if $L < $N+8;
-      # TODO: outlen must be >= N, or the q generation won't work right.
       # See NIST SP 800-57 rev 3, table 3.  sha256 is ok for all sizes
       my $outlen = ($N <= 256) ? 256 : ($N <= 384) ? 384 : 512;
       my $sha = Digest::SHA->new($outlen);
-
-      delete $param{Seed} if defined $param{Seed}
-                          && 8*length($param{Seed}) < $N;
+      croak "No digest available for Q size $N" unless defined $sha;
 
       my $n = int(($L+$outlen-1)/$outlen)-1;
       my $b = $L-1-($n*$outlen);
@@ -123,11 +126,17 @@ sub generate_params {
       my $nptests = ($L <= 2048) ? 3 : 2;   # See FIPS 186-4 table C.1
       my $nqtests = ($N <= 160) ? 19 : 27;
 
+      delete $param{Seed}
+        if defined $param{Seed} && length($param{Seed}) < $seedlen;
+      $param{Seed} = substr($param{Seed}, 0, $seedlen) if defined $param{Seed};
+
       do {
         ## Generate q
         while (1) {
           print STDERR "." if $v;
           $seed = randombytes($seedlen);
+          $seed = (defined $param{Seed}) ? delete $param{Seed}
+                                         : randombytes($seedlen);
           my $digest = $sha->reset->add($seed)->hexdigest;
           my $U = Math::BigInt->from_hex($digest)->bmod($q_test);
           $q = $q_test + $U + 1 - $U->is_odd();
@@ -203,12 +212,12 @@ sub _seed_plus_one {
 
 =head1 NAME
 
-Crypt::DSA::KeyChain - DSA key generation system
+Crypt::DSA::GMP::KeyChain - DSA key generation system
 
 =head1 SYNOPSIS
 
-    use Crypt::DSA::KeyChain;
-    my $keychain = Crypt::DSA::KeyChain->new;
+    use Crypt::DSA::GMP::KeyChain;
+    my $keychain = Crypt::DSA::GMP::KeyChain->new;
 
     my $key = $keychain->generate_params(
                     Size      => 512,
@@ -220,25 +229,28 @@ Crypt::DSA::KeyChain - DSA key generation system
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::KeyChain> is a lower-level interface to key
-generation than the interface in I<Crypt::DSA> (the I<keygen>
-method). It allows you to separately generate the I<p>, I<q>,
-and I<g> key parameters, given an optional starting seed, and
-a mandatory bit size for I<p> (I<q> will be 160 or 256 bits,
-and I<g> will be the same size as I<p>).
+L<Crypt::DSA::GMP::KeyChain> is a lower-level interface to key
+generation than the L<Crypt::DSA::GMP/keygen> method.
+It allows you to separately generate the I<p>, I<q>,
+and I<g> key parameters, given an optional starting seed, bit
+sizes for I<p> and I<q>, and which standard to follow for
+construction.
 
 You can then call I<generate_keys> to generate the public and
 private portions of the key.
 
 =head1 USAGE
 
-=head2 $keychain = Crypt::DSA::KeyChain->new
+=head2 $keychain = Crypt::DSA::GMP::KeyChain->new
 
-Constructs a new I<Crypt::DSA::KeyChain> object. At the moment
-this isn't particularly useful in itself, other than being the
-object you need in order to call the other methods.
+Constructs and returns a new L<Crypt::DSA::GMP::KeyChain>
+object.  At the moment this isn't particularly useful in
+itself, other than being the object you need in order to
+call the other methods.
 
-Returns the new object.
+The standard to follow may be given in this call, where it
+will be used in all methods unless overridden.
+
 
 =head2 $key = $keychain->generate_params(%arg)
 
@@ -247,9 +259,9 @@ values of the key. This involves finding primes, and as such
 it can be a relatively long process.
 
 When invoked in scalar context, returns a new
-I<Crypt::DSA::Key> object.
+I<Crypt::DSA::GMP::Key> object.
 
-In list context, returns the new I<Crypt::DSA::Key> object,
+In list context, returns the new I<Crypt::DSA::GMP::Key> object
 along with: the value of the internal counter when a suitable
 prime I<p> was found; the value of I<h> when I<g> was derived;
 and the value of the seed (a 20-byte or 32-byte string) when
@@ -264,16 +276,43 @@ I<%arg> can contain:
 
 Indicates which standard is to be followed.  By default,
 FIPS 186-2 is used, which maintains backward compatibility
-with the Crypt::DSA Perl code and old OpenSSL versions.  If
+with the L<Crypt::DSA> Perl code and old OpenSSL versions.  If
 C<FIPS 186-3> or C<FIPS 186-4> is given, then the FIPS 186-4
 key generation will be used.
 
+The important changes made:
+
+  - Using SHA-2 rather than SHA-1 for the CSPRNG.  This produces
+    better quality random data for prime generation.
+  - Allows I<N> to vary between 1 and 512 rather than fixed at 160.
+  - The default size for I<N> when not specified is 256 if I<L> is
+    2048 or larger, 160 otherwise.
+  - In L<Crypt::DSA::GMP>, the signing and verification will use
+    SHA-2 256 for signing and verification when I<N> E<lt>= 256,
+    and SHA-2 512 otherwise.  The old standard used SHA-1.
+
+where I<N> is the bit size of I<q>, and I<L> is the bit size of I<p>.
+These correspond to the I<QSize> and I<Size> arguments.
+
+The recommended primality tests from FIPS 186-4 are always
+performed, since they are more stringent than the older standard
+and have no negative impact on the result.
+
 =item * Size
 
-The size in bits of the I<p> value to generate. The I<q> and
-I<g> values are always 160 bits each.
-
+The size in bits of the I<p> value to generate.
 This argument is mandatory.
+
+=item * QSize
+
+The size in bits of the I<q> value to generate.  For the default
+FIPS 186-2 standard, this must always be 160.  If the FIPS 186-4
+standard is used, then this may be in the range 1 to 512.
+
+If not specified, I<q> will be 160 bits if either the default
+FIPS 186-2 standard is used or if I<Size> is less than 2048.
+If FIPS 186-4 is used and I<Size> is 2048 or larger, then I<q>
+will be 256.
 
 =item * Seed
 
@@ -281,6 +320,9 @@ A seed with which I<q> generation will begin. If this seed does
 not lead to a suitable prime, it will be discarded, and a new
 random seed chosen in its place, until a suitable prime can be
 found.
+
+A seed that is shorter than the size of I<q> will be
+immediately discarded.
 
 This is entirely optional, and if not provided a random seed will
 be generated automatically.
@@ -318,7 +360,7 @@ prime tests are done.
 =head2 $keychain->generate_keys($key)
 
 Generates the public and private portions of the key I<$key>,
-a I<Crypt::DSA::Key> object.
+a I<Crypt::DSA::GMP::Key> object.
 
 =head1 AUTHOR & COPYRIGHT
 

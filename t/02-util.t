@@ -2,10 +2,10 @@
 use strict;
 use warnings;
 
-use Test::More tests => 13;
+use Test::More tests => 18;
 
 use Math::BigInt;
-use Crypt::DSA::GMP::Util qw( bin2mp mp2bin bitsize mod_exp mod_inverse );
+use Crypt::DSA::GMP::Util qw( bin2mp mp2bin bitsize mod_exp mod_inverse makerandom makerandomrange );
 
 
 # These from Crypt::DSA
@@ -26,7 +26,8 @@ $n = bin2mp($string);
 is( $n, $number, 'bin2mp is correct for short string'           );
 is( bitsize($number), 31, 'bitsize is correct for small number' );
 is( bitsize($n), 31, 'bitsize is correct for small mp'          );
-is( mp2bin($n), $string, 'mp2bin is correct for small number'   );
+is( mp2bin($n), $string, 'mp2bin is correct for small number bigint' );
+is( mp2bin($number), $string, 'mp2bin is correct for small number native' );
 
 $string = "";
 $number = 0;
@@ -45,4 +46,12 @@ $number = mod_inverse($n1, $n2);
 is( $number, $n3, 'mod_inverse is correct' );
 is( 1, ($n1*$number)%$n2, 'mod_inverse reverses correctly' );
 
-# TODO: makerandom  randombytes
+# new
+$number = makerandom(Size=>27);
+cmp_ok($number, '>=', 2**26, "makerandom(27) >= 2^26" );
+cmp_ok($number, '<',  2**27, "makerandom(27) < 2^27" );
+
+my $max = Math::BigInt->new("892465012587212197286379595482592365885470777");
+$number = makerandomrange($max);
+cmp_ok($number, '>=', 0, "makerandomrange >= 0");
+cmp_ok($number, '<=', $max, "makerandomrange <= max");

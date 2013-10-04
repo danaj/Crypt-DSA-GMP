@@ -31,32 +31,33 @@ sub keygen {
 }
 
 sub sign {
-    my $dsa = shift;
-    my %param = @_;
-    my($key, $dgst);
-    croak __PACKAGE__, "->sign: Need a Key" unless $key = $param{Key};
-    unless ($dgst = $param{Digest}) {
+    my ($dsa, %param) = @_;
+    my ($key, $dgst) = ($param{Key}, $param{Digest});
+
+    croak __PACKAGE__, "->sign: Need a Key" unless defined $key && ref($key);
+    my ($p, $q, $g) = ($key->p, $key->q, $key->g);
+    my $N = bitsize($q);
+
+    if (!defined $dgst) {
+        my $message = $param{Message};
         croak __PACKAGE__, "->sign: Need either Message or Digest"
-            unless $param{Message};
+            unless defined $message;
         # Determine which standard we're following.
         $param{Standard} = $dsa->{Standard}
           if defined $dsa->{Standard} && !defined $param{Standard};
         if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
-          # TODO: SP 800-57 rev 3 indicates we need to look at bitsize(q)
-          # and use a stronger hash.
-          $dgst = sha256($param{Message});
+          # See NIST SP 800-57 revision 3, section 5.6.1
+          $dgst = ($N > 256) ? sha512($message) : sha256($message);
         } else {
-          $dgst = sha1($param{Message});
+          $dgst = sha1($message);
         }
     }
 
     # FIPS 186-4, section 4.6 "DSA Signature Generation"
-    my ($p, $q, $g) = ($key->p, $key->q, $key->g);
 
     # compute z as the leftmost MIN(N, outlen) bits of the digest
     my $z = bin2mp($dgst);
-    my ($N, $outlen) = ( bitsize($q), 8*length($dgst) );
-    $z->brsft($outlen - $N) if $outlen > $N;
+    $z->brsft(8*length($dgst) - $N) if $N < 8*length($dgst);
 
     # Generate r and s, ensuring neither are zero.
     my ($r, $s);
@@ -79,35 +80,38 @@ sub sign {
 }
 
 sub verify {
-    my $dsa = shift;
-    my %param = @_;
-    my($key, $dgst, $sig);
-    croak __PACKAGE__, "->verify: Need a Key" unless $key = $param{Key};
-    unless ($dgst = $param{Digest}) {
+    my ($dsa, %param) = @_;
+    my ($key, $dgst, $sig) = ($param{Key}, $param{Digest}, $param{Signature});
+
+    croak __PACKAGE__, "->verify: Need a Key"
+        unless defined $key && ref($key);
+    croak __PACKAGE__, "->verify: Need a Signature"
+        unless defined $sig && ref($sig);
+    my ($p, $q, $g, $r, $s) = ($key->p, $key->q, $key->g, $sig->r, $sig->s);
+    return 0 unless $r > 0 && $r < $q  &&  $s > 0 && $s < $q;
+    my $N = bitsize($q);
+
+    if (!defined $dgst) {
+        my $message = $param{Message};
         croak __PACKAGE__, "->verify: Need either Message or Digest"
-            unless $param{Message};
+            unless defined $message;
         # Determine which standard we're following.
         $param{Standard} = $dsa->{Standard}
           if defined $dsa->{Standard} && !defined $param{Standard};
         if (defined $param{Standard} && $param{Standard} =~ /186-[34]/) {
-          $dgst = sha256($param{Message});
+          # See NIST SP 800-57 revision 3, section 5.6.1
+          $dgst = ($N > 256) ? sha512($message) : sha256($message);
         } else {
-          $dgst = sha1($param{Message});
+          $dgst = sha1($message);
         }
     }
-    croak __PACKAGE__, "->verify: Need a Signature"
-        unless $sig = $param{Signature};
 
-    my ($p, $q, $r, $s) = ($key->p, $key->q, $sig->r, $sig->s);
-    return 0 unless $r > 0 && $r < $q;
-    return 0 unless $s > 0 && $s < $q;
     my $w = mod_inverse($s, $q);
-    $dgst = substr($dgst, 0, int((bitsize($q+7)/8)))
-        if 8*length($dgst) > bitsize($q);
     my $z = bin2mp($dgst);
+    $z->brsft(8*length($dgst) - $N) if $N < 8*length($dgst);
     my $u1 = $w->copy->bmul($z)->bmod($q);
     my $u2 = $w->copy->bmul($r)->bmod($q);
-    my $v =        mod_exp($key->g,       $u1, $p)
+    my $v =        mod_exp($g,            $u1, $p)
             ->bmul(mod_exp($key->pub_key, $u2, $p))
             ->bmod($p)
             ->bmod($q);
@@ -148,44 +152,114 @@ Crypt::DSA::GMP - DSA Signatures and Key Generation
 
 =head1 DESCRIPTION
 
-I<Crypt::DSA::GMP> is an implementation of the DSA (Digital Signature
+L<Crypt::DSA::GMP> is an implementation of the DSA (Digital Signature
 Algorithm) signature verification system. The implementation
-itself is pure Perl, although the heavy-duty mathematics underneath
-are provided by the L<Math::BigInt::GMP> and
-L<Math::Prime::Util::GMP> modules.
+itself is pure Perl, with mathematics support from
+L<Math::BigInt::GMP> and L<Math::Prime::Util::GMP>.
 
 This package provides DSA signing, signature verification, and key
 generation.
 
+This module is backwards compatible with L<Crypt::DSA>.  It removes
+a number of dependencies that were portability concerns.  It
+requires GMP.  Importantly, it follows FIPS 186-4 wherever
+possible, and has support for the new hash methods.
+
 =head1 USAGE
 
-The I<Crypt::DSA::GMP> public interface is similar to that of
-I<Crypt::RSA>. This was done intentionally.
+The public interface is a superset of L<Crypt::DSA>, and is
+intentionally very similar to L<Crypt::RSA>.
 
-=head2 Crypt::DSA->new
+=head2 Crypt::DSA::GMP->new
 
-Constructs a new I<Crypt::DSA> object. At the moment this isn't
-particularly useful in itself, other than being the object you
-need to do much else in the system.
+  my $dsa_2 = Crypt::DSA::GMP->new;
+  my $dsa_4 = Crypt::DSA::GMP->new( Standard => "FIPS 186-4" );
 
-Returns the new object.
+Constructs and returns a new L<Crypt::DSA::GMP> object.  This
+is the object used to perform other useful actions.
+
+The standard to follow may be given in this call, where it
+will be used in all methods unless overridden.  Currently
+only two standards exist:
+
+   FIPS 186-2 (includes FIPS 186-1)
+   FIPS 186-4 (includes FIPS 186-3)
+
+FIPS 186-2 is used as the default to preserve backwards
+compatibility.  The primary differences:
+
+  - NIST deprecated the old standard in 2009.
+
+  - Crypt::DSA only supports the old standard.
+
+  - FIPS 186-4 uses SHA-2 rather than SHA-1 for random number
+    generation.  This produces better quality data.
+
+  - FIPS 186-2 allows I<q> to be 160 bits only, where using
+    FIPS 186-4 allows I<q> to be set between 1 and 512.
+
+  - The default size for I<q> is 160 bits in all cases with
+    FIPS 186-2, whereas for FIPS 186-4 it is 256 if I<Size>
+    is 2048 or larger (this matches C<openssl> v1.0.1).
+
+  - The signing and verification are done using SHA-1 for
+    FIPS 186-2, whereas FIPS 186-4 applies SHA256 when I<q> is
+    256 bits or smaller, and SHA512 otherwise.  Note that a
+    digest may be passed in to these functions, bypassing the
+    selected hashes.
+
 
 =head2 $key = $dsa->keygen(%arg)
 
-Generates a new set of DSA keys, including both the public and
+Generates a new of DSA key, including both the public and
 private portions of the key.
 
 I<%arg> can contain:
 
 =over 4
 
+=item * Standard
+
+If not provided or contains C<186-1> or C<186-2> then the
+backward compatible implementation is used, using SHA-1.  If it
+is provided and contains C<186-3> or C<186-4> then the newer
+and recommended FIPS 186-4 standard is used.
+
+For key generation this means different default and allowed
+sizes for I<q>, the use of SHA-256 or SHA-512 during random
+prime generation, and the FIPS 186-4 updated prime generation
+method.
+
+The FIPS 186-4 recommended primality tests are always used as
+they are more stringent than FIPS 186-2.
+
 =item * Size
 
-The size in bits of the I<p> value to generate.  The I<q> value
-will be 160 bits if Size is less than 2048, 256 bits otherwise.
-The size in bits of I<g> is always less than or equal to Size.
+The size in bits of the I<p> value to generate.
 
 This argument is mandatory, and must be at least 256.
+
+=item * QSize
+
+The size in bits of the I<q> value to generate.  This is optional.
+
+If FIPS 186-2 is being used or I<Size> is less than 2048, then
+the default value will be 160.  If FIPS 186-4 is being used and
+I<Size> is 2048 or larger, then the default value is 256.
+
+NIST SP 800-57 describes the cryptographic strengths of different
+I<Size> and I<QSize> selections.  Their table 2 includes:
+
+    Bits     L      N
+    -----  -----  -----
+      80    1024    160
+     112    2048    224       Bits = Bits of security
+     128    3072    256       L    = Size  = bit length of I<p>
+     192    7680    384       N    = QSize = bit length of I<q>
+     256   15360    512
+
+In addition, if SHA-1 is used (the default without FIPS 186-4)
+then the bits of security provided is strictly less than 80 bits.
 
 =item * Seed
 
@@ -193,6 +267,9 @@ A seed with which I<q> generation will begin. If this seed does
 not lead to a suitable prime, it will be discarded, and a new
 random seed chosen in its place, until a suitable prime can be
 found.
+
+A seed that is shorter than the size of I<q> will be
+immediately discarded.
 
 This is entirely optional, and if not provided a random seed will
 be generated automatically.
@@ -219,22 +296,37 @@ prime tests are done.
 
 =back
 
+
 =head2 $signature = $dsa->sign(%arg)
 
 Signs a message (or the digest of a message) using the private
 portion of the DSA key and returns the signature.
 
-The return value--the signature--is a I<Crypt::DSA::GMP::Signature>
-object.
+The return value (the signature) is a
+I<Crypt::DSA::GMP::Signature> object.
 
 I<%arg> can include:
 
 =over 4
 
+=item * Standard
+
+If not provided or contains C<186-1> or C<186-2> then the
+backward compatible implementation is used, using SHA-1.  If it
+is provided and contains C<186-3> or C<186-4> then the newer
+and recommended FIPS 186-4 standard is used.
+
+For message signing this means FIPS 186-2 uses SHA-1 for digest
+construction and at most 160 bits of the digest is used.  With
+FIPS 186-4, SHA-256 is used if the bit length of I<q> is 256 or
+less and SHA-512 is used otherwise.  If the input is a Digest
+rather than a Message, then there will be no difference.
+
 =item * Digest
 
-A digest to be signed. The digest should be 20 bytes in length
-or less.
+A digest to be signed.  If the digest length is larger than
+I<N>, the bit length of I<q>, then only the leftmost I<N> bits
+will be used (as specified in FIPS 186-4).
 
 You must provide either this argument or I<Message> (see below).
 
@@ -248,17 +340,23 @@ This argument is required.
 =item * Message
 
 A plaintext message to be signed. If you provide this argument,
-I<sign> will first produce a SHA1 digest of the plaintext, then
-use that as the digest to sign. Thus writing
+I<sign> will first produce a digest of the plaintext, then
+use that as the digest to sign.  Thus writing
 
     my $sign = $dsa->sign(Message => $message, ... );
 
 is a shorter way of writing
 
-    use Digest::SHA1 qw( sha1 );
+    # FIPS 186-2:
+    use Digest::SHA qw( sha1 );
     my $sig = $dsa->sign(Digest => sha1( $message ), ... );
 
+    # FIPS 186-4:
+    use Digest::SHA qw( sha256 );
+    my $sig = $dsa->sign(Digest => sha256( $message ), ... );
+
 =back
+
 
 =head2 $verified = $dsa->verify(%arg)
 
@@ -268,6 +366,20 @@ value on success and false on failure.
 I<%arg> can contain:
 
 =over 4
+
+=item * Standard
+
+If not provided or contains C<186-1> or C<186-2> then the
+backward compatible implementation is used, using SHA-1.  If it
+is provided and contains C<186-3> or C<186-4> then the newer
+and recommended FIPS 186-4 standard is used.
+
+For message verification this means FIPS 186-2 uses SHA-1
+for digest construction and at most 160 bits of the digest is
+used.  With FIPS 186-4, SHA-256 is used if the bit length
+of I<q> is 256 or less and SHA-512 is used otherwise.  If
+the input is a Digest rather than a Message, then there will
+be no difference.
 
 =item * Key
 
@@ -285,48 +397,41 @@ This argument is required.
 
 =item * Digest
 
-The original signed digest whose length is less than or equal to
-20 bytes.
+The original signed digest.  This must be computed using the
+same hash that was used to sign the message.
 
 Either this argument or I<Message> (see below) must be present.
 
 =item * Message
 
 As above in I<sign>, the plaintext message that was signed, a
-string of arbitrary length. A SHA1 digest of this message will
+string of arbitrary length. A digest of this message will
 be created and used in the verification process.
 
 =back
 
-=head1 TODO
-
-Add ability to munge format of keys. For example, read/write keys
-from/to key files (SSH key files, etc.), and also write them in
-other formats.
-
-Crypt::DSA was written from the old SHA1-based standards, and it
-is the intention of Crypt::DSA::GMP to support the newer standards.
-NIST withdrew the old Crypt::DSA methods on June 2009.
-The trick is doing this while remaining backward compatible.
 
 =head1 SUPPORT
 
 Bugs should be reported via the CPAN bug tracker at
 
-L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Crypt-DSA>
+L<http://rt.cpan.org/NoAuth/ReportBug.html?Queue=Crypt-DSA-GMP>
 
 For other issues, contact the author.
 
-=head1 AUTHOR
+=head1 AUTHORS
 
-Benjamin Trott E<lt>ben@sixapart.comE<gt>
+Dana Jacobsen E<lt>dana@acm.orgE<gt> wrote the new internals.
+
+Benjamin Trott E<lt>ben@sixapart.comE<gt> wrote L<Crypt::DSA>
+which was the basis for this module.  The PEM module remains
+almost entirely his code.
 
 =head1 COPYRIGHT
 
-Except where otherwise noted,
-Crypt::DSA is Copyright 2006 - 2011 Benjamin Trott.
+Copyright 2013 by Dana Jacobsen E<lt>dana@acm.orgE<gt>
 
-Crypt::DSA is free software; you may redistribute it
+This program is free software; you can redistribute it
 and/or modify it under the same terms as Perl itself.
 
 =cut

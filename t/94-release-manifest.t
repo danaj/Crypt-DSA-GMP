@@ -10,6 +10,6 @@ unless ($ENV{RELEASE_TESTING}) {
 eval "use Test::CheckManifest 0.9";    ## no critic (eval)
 plan skip_all => "Test::CheckManifest 0.9 required" if $@;
 ok_manifest( {
-  exclude => [qw(/.git /.gitignore /Makefile.old)],
+  exclude => [qw(/.git /.gitignore /.travis.yml /Makefile.old)],
   filter => [qr/\.swp$/, qr/.tar.gz$/],
 } );

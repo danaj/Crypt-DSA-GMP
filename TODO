@@ -10,3 +10,7 @@
 - coverage
 
 - asn1 etc. in ssh2 file.  Go through the different possible formats.
+
+- Compare with CryptX
+
+- Test read key in PEM, write in SSH2, etc.
