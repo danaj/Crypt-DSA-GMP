@@ -84,6 +84,9 @@ sub read {
 sub write {
     my ($key, %param) = @_;
 
+    croak "write: Cannot find public key"
+      unless defined $key && defined $key->pub_key;
+
     my $type = $param{Type};
     if (!defined $type) {
       my $pkg = __PACKAGE__;
@@ -166,7 +169,7 @@ the I<Type> parameter (mandatory if I<Filename> is provided),
 be aware that your key will actually be blessed into a subclass
 of L<Crypt::DSA::GMP::Key>. Specifically, it will be the class
 implementing the specific read functionality for that type,
-e.g. L<Crypt::DSA::Key::GMP::PEM>.
+e.g. L<Crypt::DSA::GMP::Key::PEM>.
 
 Returns the key on success, C<undef> otherwise. (See I<Password>
 for one reason why I<new> might return C<undef>).

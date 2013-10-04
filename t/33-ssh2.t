@@ -2,6 +2,8 @@
 use strict;
 use warnings;
 
+my $have_pem = eval { require Convert::PEM; 1; };
+
 use Test::More;
 use Crypt::DSA::GMP;
 use Crypt::DSA::GMP::Key;
@@ -12,7 +14,8 @@ my $dsa = Crypt::DSA::GMP->new;
 ok($dsa, 'Created Crypt::DSA::GMP object');
 
 # OpenSSH created a DSA key.  Here is the pivate key in PEM format.
-{
+SKIP: {
+skip "Requires Convert::PEM",6+4 unless $have_pem;
 my $key = Crypt::DSA::GMP::Key->new( Content => <<KEY, Type => 'PEM' );
 -----BEGIN DSA PRIVATE KEY-----
 MIIBvAIBAAKBgQDXlwsLmDAzu5cVJMQfuoAFN28gjdNhvlIzHsYj9DseX/fD0Ypd
@@ -51,7 +54,8 @@ is($key->pub_key, '1269418689921808344748722477675560729102947968675736975281521
 
 # Take public key in dss-ssh format and convert via:
 #    ssh-keygen -e -m PKCS8 -f id_dsa.pub
-{
+SKIP: {
+skip "Requires Convert::PEM",6 unless $have_pem;
 my $key = Crypt::DSA::GMP::Key->new( Content => <<KEY, Type => 'PEM' );
 -----BEGIN PUBLIC KEY-----
 MIIBuDCCASwGByqGSM44BAEwggEfAoGBANeXCwuYMDO7lxUkxB+6gAU3byCN02G+

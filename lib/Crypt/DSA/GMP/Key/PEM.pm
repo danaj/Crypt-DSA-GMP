@@ -10,7 +10,7 @@ BEGIN {
 use base qw( Crypt::DSA::GMP::Key );
 
 use Carp qw( croak );
-use Convert::PEM;
+use Convert::PEM 0.07;   # So encode honors the Name parameter
 use Crypt::DSA::GMP::Key;
 
 sub deserialize {

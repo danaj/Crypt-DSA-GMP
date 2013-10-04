@@ -28,8 +28,8 @@ WriteMakefile1(
                   repository => 'https://github.com/danaj/Crypt-DSA-GMP',
                },
                recommends => {
-                  'Convert::PEM'   => 0, # For Crypt::DSA::GMP::Key::PEM
-                  'Convert::ASN1'  => 0, # To serialize/deserialize sigs
+                  'Convert::PEM'   => '0.07', # For Crypt::DSA::GMP::Key::PEM
+                  'Convert::ASN1'  => 0,      # To serialize/deserialize sigs
                },
              },
 
