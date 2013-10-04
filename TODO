@@ -1,16 +1,12 @@
-- Add FIPS 186-4 tests
-
 - We're using NonBlocking=>1 currently.  Consider blocking or a way for the
   client to tell us.
 
-- Documentation.
+- Finish going over documentation.
 
-- Tests for SSH2
+- Create a test for non-public SSH2 format
 
-- coverage
+- Compare with CryptX, make an interop xt test
 
-- asn1 etc. in ssh2 file.  Go through the different possible formats.
+- Implement SSH2 serialize.
 
-- Compare with CryptX
-
-- Test read key in PEM, write in SSH2, etc.
+- Run through RTs.

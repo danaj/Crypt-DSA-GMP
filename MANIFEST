@@ -16,8 +16,11 @@ t/02-util.t
 t/10-sign.t
 t/11-keygen.t
 t/20-fips.t
+t/21-fips-186-4.t
 t/30-pem.t
 t/31-openid.t
+t/32-pem-large.t
+t/33-ssh2.t
 t/90-release-perlcritic.t
 t/91-release-pod-syntax.t
 t/92-release-pod-coverage.t

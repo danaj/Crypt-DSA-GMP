@@ -41,16 +41,17 @@ sub deserialize {
       }
       $base64 = join "\n", @real;
     }
+    return unless defined $base64;
     my $content = decode_base64($base64);
     my $b = BufferWithInt->new_with_init($content);
 
     if ($b->get_int32 == 7 && $b->get_bytes(7) eq 'ssh-dss') {
-      # RFC 4716 format.  With ssh-keygen -e.
+      # This is the public key format created by OpenSSH
       $key->p( $b->get_mp_ssh2b );
       $key->q( $b->get_mp_ssh2b );
       $key->g( $b->get_mp_ssh2b );
-      $key->priv_key( $b->get_mp_ssh2b );
-      $key->pub_key( $key->g->copy->bmodpow($key->priv_key, $key->p) );
+      $key->pub_key( $b->get_mp_ssh2b );
+      $key->priv_key(undef);
       return $key;
     }
     $b->reset_offset;

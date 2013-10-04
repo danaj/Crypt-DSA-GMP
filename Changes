@@ -2,6 +2,39 @@ Revision history for Perl extension Crypt-DSA-GMP
 
 0.01  2013-10-05
 
-	Initial release.
+    Initial release.
 
-	Ported from Crypt::DSA with complete rewrite of most of the internals.
+    Ported from Crypt::DSA with complete rewrite of most of the internals.
+
+    The following RTs were fixed:
+
+      RT 13862 getting error                  [no longer using openssl]
+      RT 14281 makerandom() not portable      [using Crypt::Random::Seed]
+      RT 19263 which usage broken ...         [no longer using openssl]
+      RT 19812 Warning in make test           [no longer using openssl]
+      RT 21917 openssl not found if in ...    [no longer using openssl]
+      RT 58094 3-arg open used                [we require 5.006]
+      RT 19184 using of which in KeyChain...  [no longer using openssl]
+      RT 49668 openssl dsaparam output ...    [no longer using openssl]
+      RT 21968 /dev/random depletion ...      [using nonblocking]
+      RT 71342 Patch to use Digest::SHA       [using Digest::SHA]
+      RT 86424 typo fix                       [replaced with new typos]
+      RT 18768 patch for MSWin32 support      [no longer using openssl]
+      RT 88158 primality testing              [fixed]
+      RT 88429 key generation issues          [fixed]
+      RT 71421 Systems without /dev/random... [using Crypt::Random::Seed]
+
+    The following RTs are still open:
+
+      RT 19477 $key->write should know whether to write public or private
+      RT 26926 should Convert::PEM be a full dependency?
+
+    The following RTs should be closed:
+
+      RT 27144 Signature will croak during decode_base64.
+               Perhaps old MIME::Base64?  This is not the current behavior.
+      RT 54485 SSH2 format.  ssh-keygen writes a PEM file for private key.
+      RT 72371 CPAN install missing Math::Pari.  What?  This isn't required.
+
+    Note that 71421 and 21968 are somewhat conflicting.  This will be
+    dealt with soon.
