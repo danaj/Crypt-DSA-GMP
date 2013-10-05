@@ -15,9 +15,6 @@
     x.2 method with the smaller entropy use of the x.1 method.  We need
     another poke through the logic.
 
-- Make sign/verify do a key validation check
-  (e.g. primality of p,q, range checks)
-
 - Make a CryptX Crypt::PK::DSA interop test.
 
 - Test with Net::SSH::Perl (i.e. can we plug it in and have it work).
@@ -25,3 +22,5 @@
 - Test encrypted key files?
 
 - Test DER format (PEM without the wrappers).
+
+- Ensure qsize < psize

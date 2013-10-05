@@ -9,7 +9,8 @@ BEGIN {
 
 use Carp qw( croak );
 use Math::BigInt lib => "GMP";
-use Crypt::DSA::GMP::Util qw( bitsize );
+use Crypt::DSA::GMP::Util qw( bitsize mod_exp );
+use Math::Prime::Util::GMP qw/is_prime/;
 
 
 sub new {
@@ -22,6 +23,7 @@ sub new {
         }
         return $key->read(%param);
     }
+    $key->{_validated} = 0;
     $key;
 }
 
@@ -49,14 +51,42 @@ BEGIN {
               else                                { $str = $value; }
               $key->{$meth} = Math::BigInt->new("$str")
                   if defined $str && $str =~ /^\d+$/;
+              $key->{_validated} = 0;
             } elsif (@_ > 1 && !defined $value) {
               delete $key->{$meth};
+              $key->{_validated} = 0;
             }
             $key->{$meth};
         };
     }
 }
 
+# Basic mathematic validation of the key parameters.
+sub validate {
+  my $key = shift;
+  return 0 unless defined $key;
+  return 1 if $key->{_validated};
+  my ($p, $q, $g, $x, $y) = ($key->p, $key->q, $key->g, $key->priv_key, $key->pub_key);
+  return 0 unless defined $p && defined $q && defined $g;
+  return 0 unless is_prime($p) && is_prime($q);
+  return 0 unless ($p-1) % $q == 0;
+  return 0 unless 1 < $g && $g < $p;
+  return 0 unless mod_exp($g, $q, $p)->is_one;
+
+  if (defined $x) {
+    return 0 unless 0 < $x && $x < $q;
+    my $pub = mod_exp($g, $x, $p);
+    if (!defined $y) {
+      $y = $pub;
+      $key->pub_key($pub);
+    }
+    return 0 unless $y == $pub;
+  } else {
+    return 0 unless defined $y;
+  }
+  $key->{_validated} = 1;
+  1;
+}
 
 # Read and Write turn this base class key into a subclass of the
 # appropriate type.  However, how do we map their type string into

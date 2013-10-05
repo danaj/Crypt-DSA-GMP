@@ -27,6 +27,7 @@ sub keygen {
     my $dsa = shift;
     my $key = $dsa->{_keychain}->generate_params(@_);
     $dsa->{_keychain}->generate_keys($key);
+    croak "Invalid key" unless $key->validate();
     $key;
 }
 sub keyset {
@@ -43,6 +44,7 @@ sub keyset {
     if !defined $key->pub_key && defined $key->priv_key;
   croak "Key missing both private and public keys"
     unless defined $key->pub_key || defined $key->priv_key;
+  croak "Invalid key" unless $key->validate();
   $key;
 }
 
@@ -51,6 +53,7 @@ sub sign {
     my ($key, $dgst) = ($param{Key}, $param{Digest});
 
     croak __PACKAGE__, "->sign: Need a Key" unless defined $key && ref($key);
+    croak __PACKAGE__, "->sign: Invalid key" unless $key->validate();
     my ($p, $q, $g) = ($key->p, $key->q, $key->g);
     my $N = bitsize($q);
 
@@ -103,6 +106,7 @@ sub verify {
         unless defined $key && ref($key);
     croak __PACKAGE__, "->verify: Need a Signature"
         unless defined $sig && ref($sig);
+    croak __PACKAGE__, "->verify: Invalid key" unless $key->validate();
     my ($p, $q, $g, $r, $s) = ($key->p, $key->q, $key->g, $sig->r, $sig->s);
     return 0 unless $r > 0 && $r < $q  &&  $s > 0 && $s < $q;
     my $N = bitsize($q);
