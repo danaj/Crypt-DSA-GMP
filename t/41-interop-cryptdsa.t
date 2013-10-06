@@ -24,7 +24,7 @@ my $message = "This prime validation algorithm is used to validate that the inte
   my $hash = sha1($message);
 
   my $dsa1 = Crypt::DSA->new;
-  my $key1 = $dsa1->keygen( Size => 512 );
+  my $key1 = $dsa1->keygen( Size => 256 );
   my $sigobj1 = $dsa1->sign(Key=>$key1,Digest=>$hash);
   my $sig1 = [$sigobj1->r, $sigobj1->s];
   $valid = $dsa1->verify(Key=>$key1,Digest=>$hash,Signature=>$sigobj1);

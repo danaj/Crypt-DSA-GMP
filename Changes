@@ -1,6 +1,6 @@
 Revision history for Perl extension Crypt-DSA-GMP
 
-0.01  2013-10-05
+0.01  2013-10-07
 
     Initial release.
 
@@ -22,31 +22,32 @@ Revision history for Perl extension Crypt-DSA-GMP
 
     The following RTs were fixed:
 
-      RT 13862 getting error                  [no longer using openssl]
-      RT 14281 makerandom() not portable      [using Crypt::Random::Seed]
-      RT 19263 which usage broken ...         [no longer using openssl]
-      RT 19812 Warning in make test           [no longer using openssl]
-      RT 21917 openssl not found if in ...    [no longer using openssl]
-      RT 58094 3-arg open used                [we require 5.006]
-      RT 19184 using of which in KeyChain...  [no longer using openssl]
-      RT 49668 openssl dsaparam output ...    [no longer using openssl]
-      RT 71342 Patch to use Digest::SHA       [using Digest::SHA]
-      RT 86424 typo fix                       [replaced with new typos]
-      RT 18768 patch for MSWin32 support      [no longer using openssl]
-      RT 88158 primality testing              [fixed]
       RT 88429 key generation issues          [fixed]
-      RT 71421 Systems without /dev/random... [using Crypt::Random::Seed]
+      RT 88158 primality testing              [fixed]
+      RT 86424 typo fix                       [replaced with new typos]
+      RT 71342 Patch to use Digest::SHA       [using Digest::SHA]
+      RT 58094 3-arg open used                [we require 5.006]
+      RT 49668 openssl dsaparam output ...    [no longer using openssl]
+      RT 21917 openssl not found if in ...    [no longer using openssl]
+      RT 19812 Warning in make test           [no longer using openssl]
       RT 19477 $key->write not writing public [use Convert::PEM 0.07]
+      RT 19263 which usage broken ...         [no longer using openssl]
+      RT 19184 using of which in KeyChain...  [no longer using openssl]
+      RT 18768 patch for MSWin32 support      [no longer using openssl]
+      RT 14281 makerandom() not portable      [using Crypt::Random::Seed]
+      RT 13862 getting error                  [no longer using openssl]
 
-    The following RTs are still open:
+      RT 71421 Systems without /dev/random... [using Crypt::Random::Seed]
+      RT 21968 /dev/random depletion          [see textbelow]
+         best randomness source (e.g. /dev/random) for private key generation
+         best non-blocking source used for all other randomness
+         All tests allow non-blocking, so tests don't deplete entropy
+         system rand, MT, etc will never be used on any platform
+
+    The following RTs is not ready to close:
 
       RT 26926 should Convert::PEM be a full dependency?
                Absolutely not until RT 27574 is fixed (random test failures).
-
-      RT 21968 /dev/random depletion.
-               We should use /dev/random  (or equiv) for private key generation.
-               We should use /dev/urandom (or equiv) for other tasks.
-               Things like system rand, MT, etc. should never be used.
 
     The following RTs should be closed:
 
@@ -55,5 +56,3 @@ Revision history for Perl extension Crypt-DSA-GMP
       RT 54485 SSH2 format.  ssh-keygen writes a PEM file for private key.
       RT 72371 CPAN install missing Math::Pari.
                What in the world would cause this?  Nothing in this module.
-
-    Note that 71421 and 21968 are somewhat conflicting.

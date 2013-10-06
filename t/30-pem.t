@@ -19,7 +19,7 @@ use Crypt::DSA::GMP::Signature;
 my $keyfile = "./dsa-key.pem";
 
 my $dsa = Crypt::DSA::GMP->new;
-my $key = $dsa->keygen( Size => 512 );
+my $key = $dsa->keygen( Size => 384, NonBlockingKeyGeneration => 1 );
 
 ## Serialize a signature.
 my $sig = $dsa->sign(
@@ -36,7 +36,7 @@ is($sig2->s, $sig->s, '->s of both signatures is identical');
 
 ok($key->write( Type => 'PEM', Filename => $keyfile), 'Writing key works.');
 my $key2 = Crypt::DSA::GMP::Key->new( Type => 'PEM', Filename => $keyfile );
-ok($key2, 'Load key using Crypt::DSA::key');
+ok($key2, 'Load key using Crypt::DSA::GMP::key');
 is($key->p, $key2->p, '->p of both keys is identical');
 is($key->q, $key2->q, '->q of both keys is identical');
 is($key->g, $key2->g, '->g of both keys is identical');

@@ -17,7 +17,7 @@ BEGIN {
 my $message = "Je suis l'homme a tete de chou.";
 
 my $dsa = Crypt::DSA::GMP->new;
-my $key = $dsa->keygen( Size => 512 );
+my $key = $dsa->keygen( Size => 512, NonBlockingKeyGeneration => 1 );
 my $sig = $dsa->sign(
 	Message => $message,
 	Key => $key,

@@ -6,24 +6,21 @@ use Test::More;
 use Crypt::DSA::GMP;
 use Crypt::DSA::GMP::Util qw( mod_exp );
 
-BEGIN {
-  if ( not     $INC{'Math/BigInt/GMP.pm'}
-       and not $INC{'Math/BigInt/Pari.pm'} ) {
-    plan( skip_all => 'Test is excessively slow without GMP or Pari' );
-  } else {
-    plan( tests => 18 );
-  }
-}
+my @sizes = (qw/512 768 1024/);
+push @sizes, 2048 if $ENV{EXTENDED_TESTING};
+
+plan tests => 4 * scalar @sizes;
 
 
 my $dsa = Crypt::DSA::GMP->new;
-my $two = Math::BigInt->new(2);
-for my $bits (qw( 512 768 1024 )) {
-	my $key = $dsa->keygen( Size => $bits );
-	ok($key, "Key generated of size $bits bits");
-	ok($key->size, "Key is $bits bits");
-	ok(($key->p < ($two ** $bits)) && ($key->p > ($two ** ($bits-1))), "p of appropriate size ($bits bits)");
-	ok(($key->q < ($two ** 160)) && ($key->q > ($two ** 159)), "q of appropriate size ($bits bits)");
-	ok(0 == ($key->p - 1) % $key->q, "Consistency check 1 ($bits bits)");
-	ok($key->pub_key == mod_exp($key->g, $key->priv_key, $key->p), "Consistency check 2 ($bits bits)");
+foreach my $bits (@sizes) {
+  diag "Generating $bits-bit key..." if $bits > 1024;
+  my $key = $dsa->keygen( Size => $bits, NonBlockingKeyGeneration => 1 );
+  ok($key, "Key generated, $bits bits");
+  ok($key->validate, "Key passed simple validation");
+  my($L, $N) = $key->sizes;
+  is($L, $bits, "P is $bits bits");
+  is($N, 160, "Q is 160 bits (FIPS 186-2 standard size)");
+  # Note: the two consistency checks from Crypt::DSA are now performed
+  # for every generated key before returning, and also before sign & verify.
 }

@@ -196,9 +196,10 @@ sub generate_params {
 }
 
 sub generate_keys {
-    my ($keygen, $key) = @_;
+    my ($keygen, $key, $nonblock) = @_;
     my $q = $key->q;
-    my $priv_key = makerandomrange( $q-2 ) + 1;  # 0 < x < q
+    # Generate private key 0 < x < q, using best randomness source.
+    my $priv_key = makerandomrange( Max => $q-2, KeyGen => !$nonblock ) + 1;
     my $pub_key = mod_exp($key->g, $priv_key, $key->p);
     $key->priv_key($priv_key);
     $key->pub_key($pub_key);

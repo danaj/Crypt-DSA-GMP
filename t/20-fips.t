@@ -42,7 +42,7 @@ is($h, 2, 'Consistency check 2');
 is($seed, $start_seed, 'Consistency check 3');
 
 ## Generate random public and private keys.
-$keychain->generate_keys($key);
+$keychain->generate_keys($key, 1);  # Turn on nonblocking for testing
 
 my $str1 = "12345678901234567890";
 

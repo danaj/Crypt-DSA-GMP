@@ -52,6 +52,6 @@ cmp_ok($number, '>=', 2**26, "makerandom(27) >= 2^26" );
 cmp_ok($number, '<',  2**27, "makerandom(27) < 2^27" );
 
 my $max = Math::BigInt->new("892465012587212197286379595482592365885470777");
-$number = makerandomrange($max);
+$number = makerandomrange(Max => $max);
 cmp_ok($number, '>=', 0, "makerandomrange >= 0");
 cmp_ok($number, '<=', $max, "makerandomrange <= max");

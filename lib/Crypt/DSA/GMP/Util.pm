@@ -57,35 +57,40 @@ sub mod_inverse {
     $a->copy->bmodinv($n);
 }
 
-# Easy method using BRS:
-# sub randombytes {
-#   return Bytes::Random::Secure::random_bytes(@_);
-# }
 {
-  my $crs_source = undef;
+  my ($crs, $crs_best);
+  sub _setup_rng {
+    $crs_best = Crypt::Random::Seed->new();
+    $crs = ($crs_best->is_blocking())
+           ? Crypt::Random::Seed->new(NonBlocking=>1)
+           : $crs_best;
+  }
   sub randombytes {
-    $crs_source = Crypt::Random::Seed->new(NonBlocking=>1)
-      unless defined $crs_source;
-    return $crs_source->random_bytes(@_);
+    my($bytes, $keygen) = @_;
+    _setup_rng() unless defined $crs;
+    my $src = ($keygen) ? $crs_best : $crs;
+    return $src->random_bytes($bytes);
   }
 }
 
 # Generate uniform random number in range [2^(bits-1),2^bits-1]
 sub makerandom {
-    my %param = @_;
-    my $bits = $param{Size};
-    croak "makerandom must have Size >= 1" unless defined $bits && $bits > 0;
-    return Math::BigInt->bone if $bits == 1;
+  my %param = @_;
+  my ($bits, $is_keygen) = ( $param{Size}, $param{KeyGen} );
+  croak "makerandom must have Size >= 1" unless defined $bits && $bits > 0;
+  return Math::BigInt->bone if $bits == 1;
 
-    my $randbits = $bits - 1;
-    my $randbytes = int(($randbits+7)/8);
-    my $randbinary = unpack("B*", randombytes( $randbytes ));
-    return Math::BigInt->from_bin( '1' . substr($randbinary,0,$randbits) );
+  my $randbits = $bits - 1;
+  my $randbytes = int(($randbits+7)/8);
+  my $randbinary = unpack("B*", randombytes( $randbytes, $is_keygen ));
+  return Math::BigInt->from_bin( '1' . substr($randbinary,0,$randbits) );
 }
 
 # Generate uniform random number in range [0, $max]
 sub makerandomrange {
-  my $max = shift;
+  my %param = @_;
+  my ($max, $is_keygen) = ( $param{Max}, $param{KeyGen} );
+  croak "makerandomrange must have a Max > 0" unless defined $max && $max > 0;
   $max = Math::BigInt->new("$max") unless ref($max) eq 'Math::BigInt';
   my $range = $max->copy->binc;
   my $bits = length($range->as_bin) - 2;
@@ -94,9 +99,9 @@ sub makerandomrange {
   my $overflow = $rmax - ($rmax % $range);
   my $U;
   do {
-    $U = Math::BigInt->from_hex( unpack("H*", randombytes($bytes)) );
+    $U = Math::BigInt->from_hex( unpack("H*", randombytes($bytes,$is_keygen)) );
   } while $U >= $overflow;
-  $U->bmod($range);
+  $U->bmod($range);  # U is randomly in [0, k*$range-1] for some k.
   return $U;
 }
 

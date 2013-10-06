@@ -24,9 +24,10 @@ sub new {
 }
 
 sub keygen {
-    my $dsa = shift;
-    my $key = $dsa->{_keychain}->generate_params(@_);
-    $dsa->{_keychain}->generate_keys($key);
+    my ($dsa, %params) = @_;
+    my $key = $dsa->{_keychain}->generate_params(%params);
+    my $nonblock = $params{NonBlockingKeyGeneration};
+    $dsa->{_keychain}->generate_keys($key, $nonblock);
     croak "Invalid key" unless $key->validate();
     $key;
 }
@@ -84,7 +85,7 @@ sub sign {
       my ($k, $kinv);
       do {
         # k is per-message random number 0 < k < q
-        $k = makerandomrange( $q-2 ) + 1;
+        $k = makerandomrange( Max => $q-2 ) + 1;
         $r = mod_exp($g, $k, $p)->bmod($q);
       } while $r == 0;
       $kinv = mod_inverse($k, $q);
