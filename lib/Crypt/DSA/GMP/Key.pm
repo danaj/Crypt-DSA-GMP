@@ -162,6 +162,8 @@ __END__
 
 =pod
 
+=for stopwords ssh-dss
+
 =head1 NAME
 
 Crypt::DSA::GMP::Key - DSA key
@@ -224,7 +226,8 @@ A PEM file is an optionally encrypted, ASN.1-encoded object.
 Support for reading/writing PEM files comes from L<Convert::PEM>.
 If you don't have this module installed, the I<new> method will die.
 
-TODO: Describe SSH2 types.
+An SSH2 file may either be a public key in I<ssh-dss> format, or
+a private key using the SSH2 format.
 
 This argument is mandatory, I<if> you're either reading the file from
 disk (i.e. you provide a I<Filename> argument) or you've specified the

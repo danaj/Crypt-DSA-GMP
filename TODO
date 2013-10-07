@@ -1,16 +1,6 @@
-- Finish going over documentation.
-
 - Create a test for non-public SSH2 format.  We may have to roll our own.
 
 - Implement SSH2 serialize.
-
-- makerandomrange -- see FIPS 186-4 appendix B for approved methods.
-  - KeyChain/generate_keys is using B.1.2, assuming mrr is steps 4/5/6
-  - GMP/sign is using B.2.2, assuming mrr is steps 4/5/6
-  - mrr does the trick of getting 8-15 extra bits and looping until we fit
-    inside a modulo boundary.  This gives us the no-bias behaviour of the
-    x.2 method with the smaller entropy use of the x.1 method.  We need
-    another poke through the logic.
 
 - Test encrypted key files?
 
@@ -19,3 +9,5 @@
 - File ticket with Net::SSH::Perl to use this.  This and a couple other
   changes can completely remove Math::Pari from its requirements.  I have
   done some simple testing that shows this works.
+
+- Can we use the new key generation method if seed isn't given?

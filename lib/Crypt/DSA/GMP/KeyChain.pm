@@ -30,6 +30,13 @@ sub generate_params {
     croak "Number of bits (Size => $bits) is too small (min 256)"
       unless $bits >= 256;
 
+    # TODO:
+    #  - strict FIPS 186-2 compliance requires L to be a multiple
+    #    of 64 512 <= L <= 1024.
+    #  - strict FIPS 186-3/4 compliance requires L,N to be one of
+    #    the pairs:  (1024,160)  (2048,224)  (2048,256)  (3072,256)
+    #  - Can we use new generation method if seed is null?
+
     # OpenSSL was removed:
     #   1. It was a portability issue (7 RTs related to it).
     #   2. It removes module dependencies.
@@ -195,6 +202,7 @@ sub generate_params {
     return wantarray ? ($key, $counter, "$h", $seed) : $key;
 }
 
+# Using FIPS 186-4 B.1.2 approved method.
 sub generate_keys {
     my ($keygen, $key, $nonblock) = @_;
     my $q = $key->q;
@@ -323,7 +331,8 @@ This argument is mandatory.
 
 The size in bits of the I<q> value to generate.  For the default
 FIPS 186-2 standard, this must always be 160.  If the FIPS 186-4
-standard is used, then this may be in the range 1 to 512.
+standard is used, then this may be in the range 1 to 512 (values
+less than 160 are strongly discouraged).
 
 If not specified, I<q> will be 160 bits if either the default
 FIPS 186-2 standard is used or if I<Size> is less than 2048.
@@ -341,12 +350,13 @@ A seed that is shorter than the size of I<q> will be
 immediately discarded.
 
 This is entirely optional, and if not provided a random seed will
-be generated automatically.
+be generated automatically.  Do not use this option unless you
+have a specific need for a starting seed.
 
 =item * Verbosity
 
 Should be either 0 or 1. A value of 1 will give you a progress
-meter during I<p> and I<q> generation--this can be useful, since
+meter during I<p> and I<q> generation -- this can be useful, since
 the process can be relatively long.
 
 The default is 0.
@@ -354,18 +364,18 @@ The default is 0.
 =item * Prove
 
 Should be 0, 1, I<P>, or I<Q>.  If defined and true, then both
-the primes for I<p> and I<q> will have a primality proof
-constructed and verified.  Setting to I<P> or I<Q> will result
-in just that prime being proven.
+the primes for I<p> and I<q> will be proven primes.  Setting to
+the string I<P> or I<Q> will result in just that prime being proven.
 
 Using this flag will guarantee the values are prime, which is
-valuable if security is extremely important.  Note that this
-constructs random primes using the method A.1.1.1, then ensures
-they are prime by using a primality proof, rather than using a
-constructive method such as the Maurer or Shawe-Taylor
-algorithms.  The time for proof will depend on the platform
-and the Size parameter.  Proving I<q> should take 100 milliseconds
-or less, but I<p> can take a very long time if over 1024 bits.
+valuable if security is extremely important.  The current
+implementation constructs random primes using the method
+A.1.1.1, then ensures they are prime by constructing and
+verifying a primality proof, rather than using a constructive
+method such as the Maurer or Shawe-Taylor algorithms.  The
+time for proof will depend on the platform and the Size
+parameter.  Proving I<q> should take 100 milliseconds or
+less, but I<p> can take a very long time if over 1024 bits.
 
 The default is 0, which means the standard FIPS 186-4 probable
 prime tests are done.

@@ -110,7 +110,7 @@ __END__
 
 =pod
 
-=for stopwords mod_exp($a makerandom
+=for stopwords mod_exp($a makerandom makerandomrange
 
 =head1 NAME
 
@@ -132,12 +132,13 @@ Returns the number of bits in the integer I<$n>.
 =head2 bin2mp($string)
 
 Given a string I<$string> of any length, treats the string as a
-base-256 representation of an integer, and returns that integer
+base-256 representation of an integer, and returns that integer.
 
 =head2 mp2bin($int)
 
-Given an integer I<$int> (maybe a L<Math::BigInt> object), linearizes
-the integer into an octet string, and returns the octet string.
+Given an integer I<$int> (maybe a L<Math::BigInt> object),
+returns an octet string representation (e.g. a string where
+each byte is a base-256 digit of the integer).
 
 =head2 mod_exp($a, $exp, $n)
 
@@ -151,7 +152,12 @@ value.
 =head2 randombytes($n)
 
 Returns I<$n> random bytes from the entropy source.  The entropy
-source is a L<Crypt::Random::Seed> non-blocking source.
+source is a L<Crypt::Random::Seed> source.
+
+An optional boolean second argument indicates whether the data
+is being used for key generation, hence the best possible
+randomness is used.  If this argument is not present or is false,
+then the best non-blocking source will be used.
 
 =head2 makerandom
 
@@ -161,12 +167,18 @@ Takes a I<Size> argument and creates a random L<Math::BigInt>
 with exactly that number of bits using data from L</randombytes>.
 The high order bit will always be set.
 
-=head2 makerandomrange($max)
+Also takes an optional I<KeyGen> argument that is given to
+L</randombytes>.
 
-  $n = makerandomrange( $q );  # 0 <= n <= q
+=head2 makerandomrange
+
+  $n = makerandomrange(Max => $max);  # 0 <= $n <= $max
 
 Returns a L<Math::BigInt> uniformly randomly selected between
 I<0> and I<$max>.  Random data is provided by L</randombytes>.
+
+Also takes an optional I<KeyGen> argument that is given to
+L</randombytes>.
 
 =head1 AUTHOR & COPYRIGHTS
 

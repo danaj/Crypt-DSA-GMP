@@ -84,6 +84,7 @@ sub sign {
     do {
       my ($k, $kinv);
       do {
+        # Using FIPS 186-4 B.2.2 approved method
         # k is per-message random number 0 < k < q
         $k = makerandomrange( Max => $q-2 ) + 1;
         $r = mod_exp($g, $k, $p)->bmod($q);
@@ -182,16 +183,19 @@ This package provides DSA signing, signature verification, and key
 generation.
 
 This module is backwards compatible with L<Crypt::DSA>.  It removes
-a number of dependencies that were portability concerns.  It
-requires GMP.  Importantly, it follows FIPS 186-4 wherever
-possible, and has support for the new hash methods.
+a number of dependencies that were portability concerns.
+Importantly, it follows FIPS 186-4 wherever possible, and has
+support for the new hash methods.
+
+See L</RECOMMENDED KEY GENERATION PARAMETERS> for recommendations
+of key generation parameters.
 
 =head1 USAGE
 
 The public interface is a superset of L<Crypt::DSA>, and is
 intentionally very similar to L<Crypt::RSA>.
 
-=head2 Crypt::DSA::GMP->new
+=head2 new
 
   my $dsa_2 = Crypt::DSA::GMP->new;
   my $dsa_4 = Crypt::DSA::GMP->new( Standard => "FIPS 186-4" );
@@ -209,28 +213,33 @@ only two standards exist:
 FIPS 186-2 is used as the default to preserve backwards
 compatibility.  The primary differences:
 
-  - NIST deprecated the old standard in 2009.
+  - FIPS 186-2:
+    - Up to 80 bits of security (less with default SHA-1).
+    - NIST deprecated in 2009.
+    - Completely backward compatible with Crypt::DSA.
+      (barring differences caused by Crypt::DSA calling openssl)
+    - Key generation:
+      - SHA-1 is used for the CSPRNG.
+      - QSize (the size of q) must be 160 bits.
+    - Signing and verification:
+      - SHA-1 is used to hash Message:
+        less than 80 bits of security regardless of key sizes.
+      - No difference if Digest is given directly.
 
-  - Crypt::DSA only supports the old standard.
+  - FIPS 186-4:
+    - Up to 256 bits of security.
+    - Key generation:
+      - SHA-2 256/384/512 is used for the CSPRNG.
+      - QSize (the size of q) may be set to any value up to 512.
+      - The default QSize is 160 when Size < 2048.
+      - The default QSize is 256 when Size >= 2048.
+    - Signing and verification:
+      - SHA2-256 or SHA2-512 is used to hash Message.
+      - No difference if Digest is given directly.
 
-  - FIPS 186-4 uses SHA-2 rather than SHA-1 for random number
-    generation.  This produces better quality data.
+=head2 keygen
 
-  - FIPS 186-2 allows I<q> to be 160 bits only, where using
-    FIPS 186-4 allows I<q> to be set between 1 and 512.
-
-  - The default size for I<q> is 160 bits in all cases with
-    FIPS 186-2, whereas for FIPS 186-4 it is 256 if I<Size>
-    is 2048 or larger (this matches C<openssl> v1.0.1).
-
-  - The signing and verification are done using SHA-1 for
-    FIPS 186-2, whereas FIPS 186-4 applies SHA256 when I<q> is
-    256 bits or smaller, and SHA512 otherwise.  Note that a
-    digest may be passed in to these functions, bypassing the
-    selected hashes.
-
-
-=head2 $key = $dsa->keygen(%arg)
+  $key = $dsa->keygen(%arg);
 
 Generates a new of DSA key, including both the public and
 private portions of the key.
@@ -275,8 +284,8 @@ I<Size> and I<QSize> selections.  Their table 2 includes:
     -----  -----  -----
       80    1024    160
      112    2048    224       Bits = Bits of security
-     128    3072    256       L    = Size  = bit length of I<p>
-     192    7680    384       N    = QSize = bit length of I<q>
+     128    3072    256       L    = Size  = bit length of p
+     192    7680    384       N    = QSize = bit length of q
      256   15360    512
 
 In addition, if SHA-1 is used (the default without FIPS 186-4)
@@ -317,8 +326,45 @@ prime tests are done.
 
 =back
 
+=head3 RECOMMENDED KEY GENERATION PARAMETERS
 
-=head2 $key = $dsa->keyset(%arg)
+These are recommended parameters for the L</keygen> method.
+
+For strict interoperability with all other DSA software, use:
+
+  Size => 1024
+
+For better security and interoperability with anything but the
+most pedantic software (FIPS 186-2 had a maximum size of 1024;
+FIPS 186-4 strict compliance doesn't support this I<(L,N)> pair):
+
+  Size => 2048, QSize => 160, Prove => "Q", Standard => "186-4"
+
+For better security and good interoperability with modern code
+(including OpenSSL):
+
+  Size => 3072, QSize => 256, Prove => "Q", Standard => "186-4"
+
+Note that signatures should a strong hash (either use the
+C<Standard =E<gt> "FIPS 186-4"> option when signing, or hash
+the message yourself with something like I<sha256>).  Without
+this, the FIPS 186-2 default of SHA-1 will be used, and
+security strength will be less than 80 bits regardless of the
+sizes of I<p> and I<q>.
+
+Using Size larger than 3072 and QSize larger than 256 is possible
+and most software will support this.  NIST SP 800-57 indicates
+the two pairs I<(7680,384)> and I<(15360,512)> as examples of
+higher cryptographic strength options with 192 and 256 bits of
+security respectively.  With either pair, an appropriately strong
+hash should be used, e.g.  I<sha512>, I<sha3_512>, I<skein_512>,
+or I<whirlpool>.  The main bottleneck is the time required to
+generate the keys, which could be several minutes.
+
+
+=head2 keyset
+
+  my $key = $dsa->keyset(%arg);
 
 Creates a key with given elements, typically read from another
 source or via another module.  I<p>, I<q>, and I<g> are all
@@ -327,7 +373,11 @@ required.  I<pub_key> will be constructed if it is not supplied
 but I<priv_key> is not.
 
 
-=head2 $signature = $dsa->sign(%arg)
+=head2 sign
+
+  my $sig = $dsa->sign(Key => $key, Message => $msg);
+  my $sig = $dsa->sign(Key => $key, Digest => $hash_of_msg);
+  my $sig = $dsa->sign(%arg);
 
 Signs a message (or the digest of a message) using the private
 portion of the DSA key and returns the signature.
@@ -381,14 +431,18 @@ is a shorter way of writing
     use Digest::SHA qw( sha1 );
     my $sig = $dsa->sign(Digest => sha1( $message ), ... );
 
-    # FIPS 186-4:
+    # FIPS 186-4 with QSize <= 256:
     use Digest::SHA qw( sha256 );
     my $sig = $dsa->sign(Digest => sha256( $message ), ... );
 
 =back
 
 
-=head2 $verified = $dsa->verify(%arg)
+=head2 verify
+
+  my $v = $dsa->verify(Key=>$key, Signature=>$sig, Message=>$msg);
+  my $v = $dsa->verify(Key=>$key, Signature=>$sig, Digest=>$hash);
+  my $v = $dsa->verify(%arg);
 
 Verifies a signature generated with L</sign>. Returns a true
 value on success and false on failure.
