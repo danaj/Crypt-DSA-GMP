@@ -230,7 +230,7 @@ compatibility.  The primary differences:
     - Up to 256 bits of security.
     - Key generation:
       - SHA-2 256/384/512 is used for the CSPRNG.
-      - QSize (the size of q) may be set to any value up to 512.
+      - QSize (the size of q) may be any integer from 1 to 512.
       - The default QSize is 160 when Size < 2048.
       - The default QSize is 256 when Size >= 2048.
     - Signing and verification:

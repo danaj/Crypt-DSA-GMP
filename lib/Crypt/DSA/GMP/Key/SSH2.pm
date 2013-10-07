@@ -127,8 +127,8 @@ Crypt::DSA::GMP::Key::SSH2 - Read/write DSA SSH2 files
 
 =head1 DESCRIPTION
 
-L<Crypt::DSA::GMP::Key::SSH2> provides an interface to reading and
-writing DSA SSH2 files, using L<Data::Buffer>, which provides
+L<Crypt::DSA::GMP::Key::SSH2> provides an interface for reading
+and writing DSA SSH2 files, using L<Data::Buffer>, which provides
 functionality for SSH-compatible binary in/out buffers.
 
 Currently encrypted key files are not supported.

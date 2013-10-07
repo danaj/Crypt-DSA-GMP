@@ -163,8 +163,8 @@ Crypt::DSA::GMP::Key::PEM - Read/write DSA PEM files
 
 =head1 DESCRIPTION
 
-L<Crypt::DSA::GMP::Key::PEM> provides an interface to reading and
-writing DSA PEM files, using L<Convert::PEM>. The files are
+L<Crypt::DSA::GMP::Key::PEM> provides an interface for reading
+and writing DSA PEM files, using L<Convert::PEM>. The files are
 ASN.1-encoded and optionally encrypted.
 
 You shouldn't use this module directly. As the SYNOPSIS above

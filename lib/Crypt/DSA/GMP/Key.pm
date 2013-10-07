@@ -203,7 +203,7 @@ Creates a new (empty) key object. All of the attributes are
 initialized to 0.
 
 Alternately, if you provide the I<Filename> parameter (see
-below), the key will be read in from disk. If you provide
+below), the key will be read from disk.  If you provide
 the I<Type> parameter (mandatory if I<Filename> is provided),
 be aware that your key will actually be blessed into a subclass
 of L<Crypt::DSA::GMP::Key>. Specifically, it will be the class
@@ -235,7 +235,7 @@ I<Content> argument.
 
 =item * Filename
 
-The location of the file from which you'd like to read the key.
+The location of the file which contains the key.
 Requires a I<Type> argument so the decoder knows what type of file it
 is.  You can't specify I<Content> and I<Filename> at the same time.
 
@@ -301,7 +301,7 @@ I<%arg> can include:
 
 =item * Type
 
-The type of file format that you wish to read, e.g. I<PEM>.
+The type of file format, e.g. I<PEM>, in which the key is stored.
 This argument is mandatory.
 
 =item * Filename

@@ -1,14 +1,14 @@
-Revision history for Perl extension Crypt-DSA-GMP
+Revision history for Crypt::DSA::GMP
 
 0.01  2013-10-07
 
     Initial release.
 
-    Ported from Crypt::DSA with complete rewrite of most of the internals.
+    Ported from Crypt::DSA with rewrite of most of the internals.
 
     Primary high level changes from Crypt::DSA:
 
-       - Fixed the outstanding RTs
+       - Fixed the outstanding RTs (see below)
        - Fixes a number of other security issues
        - Don't use OpenSSL
        - Requires GMP.  Definitely does not use Pari.
@@ -38,10 +38,10 @@ Revision history for Perl extension Crypt-DSA-GMP
       RT 13862 getting error                  [no longer using openssl]
 
       RT 71421 Systems without /dev/random... [using Crypt::Random::Seed]
-      RT 21968 /dev/random depletion          [see textbelow]
+      RT 21968 /dev/random depletion          [see text below]
          best randomness source (e.g. /dev/random) for private key generation
          best non-blocking source used for all other randomness
-         All tests allow non-blocking, so tests don't deplete entropy
+         All module tests allow non-blocking, so tests don't deplete entropy
          system rand, MT, etc will never be used on any platform
 
     The following RTs is not ready to close:
@@ -55,4 +55,4 @@ Revision history for Perl extension Crypt-DSA-GMP
                Perhaps old MIME::Base64?  This is not the current behavior.
       RT 54485 SSH2 format.  ssh-keygen writes a PEM file for private key.
       RT 72371 CPAN install missing Math::Pari.
-               What in the world would cause this?  Nothing in this module.
+               Crypt::DSA does not require Math::Pari.  Old other modules?
