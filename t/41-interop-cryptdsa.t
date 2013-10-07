@@ -7,7 +7,9 @@ use Digest::SHA qw/sha1/;
 # Testing interoperability with Crypt::DSA.
 
 BEGIN {
-  if ( eval { require Crypt::DSA; 1; } ) {
+  if ( ! $ENV{RELEASE_TESTING} ) {
+    plan skip_all => 'tests tests are for release candidate testing';
+  } elsif ( eval { require Crypt::DSA; 1; } ) {
     plan tests => 4;
   } else {
     plan skip_all => 'Requires Crypt::DSA';

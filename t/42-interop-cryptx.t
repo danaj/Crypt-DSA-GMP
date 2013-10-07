@@ -6,7 +6,9 @@ use Test::More;
 # Testing interoperability with CryptX
 
 BEGIN {
-  if ( eval {
+    if ( ! $ENV{RELEASE_TESTING} ) {
+    plan skip_all => 'tests tests are for release candidate testing';
+  } elsif ( eval {
     require Crypt::PK::DSA;
     defined $CryptX::VERSION && $CryptX::VERSION >= 0.014;
     } ) {
