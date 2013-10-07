@@ -4,7 +4,7 @@ WriteMakefile1(
     NAME         => 'Crypt::DSA::GMP',
     ABSTRACT     => 'DSA Signatures and Key Generation',
     VERSION_FROM => 'lib/Crypt/DSA/GMP.pm',
-    LICENSE      => 'perl',
+    LICENSE      => 'perl_5',
     AUTHOR       => 'Dana A Jacobsen <dana@acm.org>',
 
     BUILD_REQUIRES=>{
@@ -23,11 +23,12 @@ WriteMakefile1(
                       'base'                   => 0,
                     },
     META_MERGE   => {
-               resources => {
+               'meta-spec'  => { version => 2, },
+               resources    => {
                   homepage   => 'https://github.com/danaj/Crypt-DSA-GMP',
                   repository => 'https://github.com/danaj/Crypt-DSA-GMP',
                },
-               recommends => {
+               recommends   => {
                   'Convert::PEM'   => '0.07', # For Crypt::DSA::GMP::Key::PEM
                   'Convert::ASN1'  => 0,      # To serialize/deserialize sigs
                },
