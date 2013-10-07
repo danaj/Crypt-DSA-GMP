@@ -13,7 +13,7 @@ WriteMakefile1(
     PREREQ_PM    => {
                       'Digest::SHA'            => '5.22',
                       'MIME::Base64'           => 0,
-                      'Data::Buffer'           => '0.01',
+                      'Data::Buffer'           => '0.04',  # new_with_init
                       'Math::BigInt'           => '1.78',  # try
                       'Math::BigInt::GMP'      => 0,
                       'Math::Prime::Util::GMP' => '0.15',  # M-R random
