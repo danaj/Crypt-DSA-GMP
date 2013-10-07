@@ -333,7 +333,7 @@ Signs a message (or the digest of a message) using the private
 portion of the DSA key and returns the signature.
 
 The return value (the signature) is a
-I<Crypt::DSA::GMP::Signature> object.
+L<Crypt::DSA::GMP::Signature> object.
 
 I<%arg> can include:
 
@@ -362,7 +362,7 @@ You must provide either this argument or I<Message> (see below).
 
 =item * Key
 
-The I<Crypt::DSA::GMP::Key> object with which the signature will be
+The L<Crypt::DSA::GMP::Key> object with which the signature will be
 generated. Should contain a private key attribute (I<priv_key>).
 
 This argument is required.
@@ -413,7 +413,7 @@ be no difference.
 
 =item * Key
 
-Key of the signer of the message; a I<Crypt::DSA::GMP::Key> object.
+Key of the signer of the message; a L<Crypt::DSA::GMP::Key> object.
 The public portion of the key is used to verify the signature.
 
 This argument is required.

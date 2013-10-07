@@ -21,6 +21,3 @@
 - File ticket with Net::SSH::Perl to use this.  This and a couple other
   changes can completely remove Math::Pari from its requirements.  I have
   done some simple testing that shows this works.
-
-- Mention in documentation that everything is a BigInt.  This differs from
-Crypt::OpenSSL::DSA where everything is a binary blob.

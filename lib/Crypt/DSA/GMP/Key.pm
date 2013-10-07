@@ -189,6 +189,12 @@ I<priv_key>, and I<pub_key>. For example:
     $key->p($p);
     my $p2 = $key->p;
 
+All the attributes are L<Math::BigInt> objects.  When setting
+with a non-Math::BigInt object, we will attempt conversion from
+native integers, numeric strings in base 10 or base 16 (the
+latter with a C<0x> prefix), Pari objects, and any object that
+support stringification to base 10.
+
 =head2 $key = Crypt::DSA::GMP::Key->new(%arg)
 
 Creates a new (empty) key object. All of the attributes are
@@ -265,7 +271,7 @@ I<%arg> can include:
 The type of file format that you wish to write, e.g. I<PEM>.
 
 This argument is mandatory, I<unless> your I<$key> object is
-already blessed into a subclass (e.g. I<Crypt::DSA::GMP::Key::PEM>),
+already blessed into a subclass (e.g. L<Crypt::DSA::GMP::Key::PEM>),
 and you wish to write the file using the same subclass.
 
 =item * Filename

@@ -137,10 +137,12 @@ Deserializes the ASN.1-encoded representation into a signature object.
 =head2 r
 
 One half of the DSA signature for a message.
+This is a L<Math::BigInt> object.
 
 =head2 s
 
 One half of the DSA signature for a message.
+This is a L<Math::BigInt> object.
 
 =head1 AUTHOR & COPYRIGHTS
 
