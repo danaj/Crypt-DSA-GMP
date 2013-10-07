@@ -308,7 +308,15 @@ and have no negative impact on the result.
 
 =item * Size
 
-The size in bits of the I<p> value to generate.
+The size in bits of the I<p> value to generate.  The minimum
+allowable value is 256, and must also be at least 8 bits larger
+than the size of I<q> (defaults to 160, see I<QSize>).
+
+For any use where security is a concern, 1024 bits should be
+considered a minimum size.  NIST SP800-57 (July 2012) considers
+1024 bit DSA using SHA-1 to be deprecated, with 2048 or more bits
+using SHA-2 to be acceptable.
+
 This argument is mandatory.
 
 =item * QSize

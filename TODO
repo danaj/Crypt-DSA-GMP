@@ -14,10 +14,13 @@
 
 - Make a CryptX Crypt::PK::DSA interop test.
 
-- Test with Net::SSH::Perl (i.e. can we plug it in and have it work).
-
 - Test encrypted key files?
 
 - Test DER format (PEM without the wrappers).
 
-- Ensure qsize < psize
+- File ticket with Net::SSH::Perl to use this.  This and a couple other
+  changes can completely remove Math::Pari from its requirements.  I have
+  done some simple testing that shows this works.
+
+- Mention in documentation that everything is a BigInt.  This differs from
+Crypt::OpenSSL::DSA where everything is a binary blob.
