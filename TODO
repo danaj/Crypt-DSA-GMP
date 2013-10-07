@@ -12,8 +12,6 @@
     x.2 method with the smaller entropy use of the x.1 method.  We need
     another poke through the logic.
 
-- Make a CryptX Crypt::PK::DSA interop test.
-
 - Test encrypted key files?
 
 - Test DER format (PEM without the wrappers).
