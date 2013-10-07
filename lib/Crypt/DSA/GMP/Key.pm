@@ -66,7 +66,7 @@ sub validate {
   my $key = shift;
   return 0 unless defined $key;
   return 1 if $key->{_validated};
-  my ($p, $q, $g, $x, $y) = ($key->p, $key->q, $key->g, $key->priv_key, $key->pub_key);
+  my ($p, $q, $g, $x) = ($key->p, $key->q, $key->g, $key->priv_key);
   return 0 unless defined $p && defined $q && defined $g;
   return 0 unless is_prime($p) && is_prime($q);
   return 0 unless ($p-1) % $q == 0;
@@ -76,14 +76,15 @@ sub validate {
   if (defined $x) {
     return 0 unless 0 < $x && $x < $q;
     my $pub = mod_exp($g, $x, $p);
-    if (!defined $y) {
-      $y = $pub;
+    if (!defined $key->pub_key) {
       $key->pub_key($pub);
+    } else {
+      return 0 unless $key->pub_key == $pub;
     }
-    return 0 unless $y == $pub;
-  } else {
-    return 0 unless defined $y;
   }
+  my $y = $key->pub_key;
+  return 0 unless defined $y;
+  return 0 unless $y < $p;
   $key->{_validated} = 1;
   1;
 }
@@ -316,6 +317,32 @@ large prime I<p>.
 
 Returns a two entry array (L, N) where L is the bit length of
 I<p> and N is the bit length of I<q>.
+
+=head2 validate
+
+Does simple validation on the key and returns 1 if it passes,
+and 0 otherwise.  This includes:
+
+=over 4
+
+=item * existence check on I<p>, I<q>, and I<g>
+
+=item * verify primality of I<p> and I<q>
+
+=item * verify I<q> is a factor of I<p-1>
+
+=item * partial validation of I<g> (FIPS 186-4 A.2.2)
+
+=item * existence check of one of I<priv_key> or I<pub_key>
+
+=item * construction or verification of I<pub_key> if I<priv_key> exists
+
+=back
+
+Using the high level L<Crypt::DSA:::GMP> routines, this method
+is called after key generation, before signing, and before
+verification.  An exception is thrown if the result is not
+valid.
 
 =head2 p
 
