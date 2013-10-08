@@ -5,7 +5,7 @@ use warnings;
 
 BEGIN {
   $Crypt::DSA::GMP::AUTHORITY = 'cpan:DANAJ';
-  $Crypt::DSA::GMP::VERSION = '0.02';
+  $Crypt::DSA::GMP::VERSION = '0.03';
 }
 
 use Carp qw( croak );
@@ -149,6 +149,10 @@ __END__
 =head1 NAME
 
 Crypt::DSA::GMP - DSA Signatures and Key Generation
+
+=head1 VERSION
+
+Version 0.03
 
 =head1 SYNOPSIS
 

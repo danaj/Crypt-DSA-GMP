@@ -7,7 +7,7 @@ WriteMakefile1(
     LICENSE      => 'perl_5',
     AUTHOR       => 'Dana A Jacobsen <dana@acm.org>',
 
-    BUILD_REQUIRES=>{
+    TEST_REQUIRES=> {
                       'Test::More'       => '0.45',
                     },
     PREREQ_PM    => {
@@ -29,12 +29,25 @@ WriteMakefile1(
                },
                no_index => { package => ['BufferWithInt'] },
                resources    => {
+                  license    => [ 'http://dev.perl.org/licenses/' ],
                   homepage   => 'https://github.com/danaj/Crypt-DSA-GMP',
-                  repository => 'https://github.com/danaj/Crypt-DSA-GMP',
+                  repository => {
+                    url  => 'git://github.com/danaj/Crypt-DSA-GMP.git',
+                    web  => 'https://github.com/danaj/Crypt-DSA-GMP',
+                    type => 'git',
+                  },
+                  bugtracker => {
+                    web    => 'http://rt.cpan.org/Public/Dist/Display.html?Name=Crypt-DSA-GMP',
+                    mailto => 'danaj@cpan.org',
+                  },
                },
-               recommends   => {
-                  'Convert::PEM'   => '0.07', # For Crypt::DSA::GMP::Key::PEM
-                  'Convert::ASN1'  => 0,      # To serialize/deserialize sigs
+               prereqs => {
+                 runtime => {
+                   recommends => {
+                     'Convert::PEM'   => '0.07', # For Crypt::DSA::GMP::Key::PEM
+                     'Convert::ASN1'  => 0,      # To serialize/deserialize sigs
+                   },
+                 },
                },
              },
 
