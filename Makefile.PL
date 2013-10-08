@@ -23,7 +23,11 @@ WriteMakefile1(
                       'base'                   => 0,
                     },
     META_MERGE   => {
-               'meta-spec'  => { version => 2, },
+               'meta-spec'  => {
+                  version => '2',
+                  url     => 'http://search.cpan.org/perldoc?CPAN::Meta::Spec',
+               },
+               no_index => { package => ['BufferWithInt'] },
                resources    => {
                   homepage   => 'https://github.com/danaj/Crypt-DSA-GMP',
                   repository => 'https://github.com/danaj/Crypt-DSA-GMP',

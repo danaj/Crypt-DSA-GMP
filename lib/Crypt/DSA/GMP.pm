@@ -5,7 +5,7 @@ use warnings;
 
 BEGIN {
   $Crypt::DSA::GMP::AUTHORITY = 'cpan:DANAJ';
-  $Crypt::DSA::GMP::VERSION = '0.01';
+  $Crypt::DSA::GMP::VERSION = '0.02';
 }
 
 use Carp qw( croak );

@@ -14,3 +14,5 @@
   done some simple testing that shows this works.
 
 - Can we use the new key generation method if seed isn't given?
+
+- Make the BufferWithInt helper package completely internal

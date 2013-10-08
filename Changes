@@ -1,5 +1,9 @@
 Revision history for Crypt::DSA::GMP
 
+0.02  2013-10-08
+
+    Turn off indexing for an internal helper package
+
 0.01  2013-10-07
 
     Initial release.
