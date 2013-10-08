@@ -32,7 +32,7 @@ my $message = "This prime validation algorithm is used to validate that the inte
   while (1) {
     $dsa1->generate_key(20, 48);
     my $pkhash = $dsa1->key2hash;
-    last if Math::BigInt->from_hex($pkhash->{x}) < Math::BigInt->from_hex($pkhash->{q});
+    last if Math::BigInt->from_hex('0x'.$pkhash->{x}) < Math::BigInt->from_hex('0x'.$pkhash->{q});
   }
   # sigobj1 is just a blob of ASN1 encoded r/s
   my $sigobj1 = $dsa1->sign_message($message);

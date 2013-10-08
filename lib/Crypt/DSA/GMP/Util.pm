@@ -25,7 +25,7 @@ sub bitsize {
 sub bin2mp {
     my $s = shift;
     return Math::BigInt->new(0) if !defined $s || $s eq '';
-    return Math::BigInt->from_hex(unpack("H*", $s));
+    return Math::BigInt->from_hex('0x' . unpack("H*", $s));
 }
 
 # This is the i2osp function
@@ -83,7 +83,7 @@ sub makerandom {
   my $randbits = $bits - 1;
   my $randbytes = int(($randbits+7)/8);
   my $randbinary = unpack("B*", randombytes( $randbytes, $is_keygen ));
-  return Math::BigInt->from_bin( '1' . substr($randbinary,0,$randbits) );
+  return Math::BigInt->from_bin( '0b1' . substr($randbinary,0,$randbits) );
 }
 
 # Generate uniform random number in range [0, $max]
@@ -99,7 +99,7 @@ sub makerandomrange {
   my $overflow = $rmax - ($rmax % $range);
   my $U;
   do {
-    $U = Math::BigInt->from_hex( unpack("H*", randombytes($bytes,$is_keygen)) );
+    $U = Math::BigInt->from_hex( '0x' . unpack("H*", randombytes($bytes,$is_keygen)) );
   } while $U >= $overflow;
   $U->bmod($range);  # U is randomly in [0, k*$range-1] for some k.
   return $U;

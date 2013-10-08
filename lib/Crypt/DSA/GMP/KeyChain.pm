@@ -106,7 +106,7 @@ sub generate_params {
             $seedp1 = _seed_plus_one($seedp1);
             $Wstr = sha1_hex($seedp1) . $Wstr;
           }
-          my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
+          my $W = Math::BigInt->from_hex('0x'.$Wstr)->bmod($p_test);
           my $X = $W + $p_test;
           $p = $X - ( ($X % $q2) - 1);
           if ($p >= $p_test) {
@@ -151,7 +151,7 @@ sub generate_params {
           $seed = (defined $param{Seed}) ? delete $param{Seed}
                                          : randombytes($seedlen);
           my $digest = $sha->reset->add($seed)->hexdigest;
-          my $U = Math::BigInt->from_hex($digest)->bmod($q_test);
+          my $U = Math::BigInt->from_hex('0x'.$digest)->bmod($q_test);
           $q = $q_test + $U + 1 - $U->is_odd();
           $mrseed = '0x'.substr(sha256_hex($seed),0,16) unless defined $mrseed;
           last if ( $proveq && is_provable_prime($q))
@@ -171,7 +171,7 @@ sub generate_params {
             $seedp1 = _seed_plus_one($seedp1);
             $Wstr = $sha->reset->add($seedp1)->hexdigest . $Wstr;
           }
-          my $W = Math::BigInt->from_hex($Wstr)->bmod($p_test);
+          my $W = Math::BigInt->from_hex('0x'.$Wstr)->bmod($p_test);
           my $X = $W + $p_test;
           $p = $X - ( ($X % $q2) - 1);
           if ($p >= $p_test) {
