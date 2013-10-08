@@ -12,7 +12,7 @@ BEGIN {
     require Crypt::PK::DSA;
     defined $CryptX::VERSION && $CryptX::VERSION >= 0.014;
     } ) {
-    plan tests => 4;
+    plan tests => 4 + 1;
   } else {
     plan skip_all => 'Requires CryptX version 0.014 or later';
   }
@@ -70,4 +70,52 @@ my $message = "This prime validation algorithm is used to validate that the inte
     $valid = $dsa1->verify_message($sig, $message);
     ok($valid, "CryptX can verify using the Crypt::DSA::GMP signature");
   }
+}
+
+# Test PEM and DER
+{
+  my $pk = Crypt::PK::DSA->new();
+  while (1) { # Work around CryptX RT 89308
+    $pk->generate_key(20, 48);
+    my $pkhash = $pk->key2hash;
+    last if Math::BigInt->from_hex($pkhash->{x}) < Math::BigInt->from_hex($pkhash->{q});
+  }
+
+  my $private_der = $pk->export_key_der('private');
+  my $public_der = $pk->export_key_der('public');
+  my $private_pem = $pk->export_key_pem('private');
+  my $public_pem = $pk->export_key_pem('public');
+
+  my $key_pem_priv = Crypt::DSA::GMP::Key->new( Type => 'PEM', Content => $private_pem );
+
+  ok($key_pem_priv, "PEM private key imported");
+
+  # Libtomcrypt uses a different format (sigh).  Rather than:
+  #      Sequence(
+  #         ObjId OBJECT IDENTIFIER,
+  #         Sequence(
+  #            p INTEGER
+  #            q INTEGER
+  #            g INTEGER
+  #         )
+  #      )
+  #      pub_key BIT STRING
+  # it uses:
+  #      Sequence(
+  #         pub_key INTEGER,
+  #         Sequence(
+  #            p INTEGER
+  #            q INTEGER
+  #            g INTEGER
+  #         )
+  #      )
+  #
+  #my $key_pem_pub  = Crypt::DSA::GMP::Key->new( Type => 'PEM', Content => $public_pem );
+  #ok($key_pem_pub , "PEM public key imported");
+
+  # TODO: make this
+  #my $key_der_priv = Crypt::DSA::GMP::Key->new( Type => 'DER', Content => $private_der );
+  #my $key_der_pub  = Crypt::DSA::GMP::Key->new( Type => 'DER', Content => $public_der );
+  #ok($key_der_priv, "DER private key imported");
+  #ok($key_der_pub , "DER public key imported");
 }

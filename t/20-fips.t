@@ -49,4 +49,3 @@ my $str1 = "12345678901234567890";
 ## Test key generation by signing and verifying a message.
 my $sig = $dsa->sign(Message => $str1, Key => $key);
 ok($dsa->verify(Message => $str1, Key => $key, Signature => $sig), 'Signing and verifying ok');
-

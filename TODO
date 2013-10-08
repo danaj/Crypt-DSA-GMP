@@ -4,7 +4,10 @@
 
 - Test encrypted key files?
 
-- Test DER format (PEM without the wrappers).
+- DER format (PEM without the wrappers)
+
+- Should we care about CryptX PEM interop?  libtomcrypt writes the data
+  differently than OpenSSL, Crypto++, etc.  We could make a new Key type.
 
 - File ticket with Net::SSH::Perl to use this.  This and a couple other
   changes can completely remove Math::Pari from its requirements.  I have
